@@ -13,6 +13,109 @@
 
 SDL_Renderer* gRenderer = NULL;
 
+/*
+ * The tilemap.
+ */
+struct tilemap {
+	int* tiles;
+	int len;
+	int w;
+	int h;
+};
+
+void tilemap_init(struct tilemap* m);
+bool tilemap_read(struct tilemap* m, const char* path);
+void tilemap_add(struct tilemap* m, int tileval);
+
+void tilemap_init(struct tilemap* m) {
+	m->tiles = calloc(1, sizeof(int));
+	m->len = 0;
+	m->w = 0;
+	m->h = 0;
+}
+
+bool tilemap_read(struct tilemap* map, const char* path) {
+	map->tiles = calloc(1, sizeof(int));
+	map->len = 0;
+	map->w = 0;
+	map->h = 0;
+
+	FILE* f = fopen(path, "r");
+	if (f == NULL) {
+		perror(path);
+	}
+
+	char buf[3] = { 0 }; // This buffer will be filled with each read hex digit.
+	int  bi = 0;         // The buffer index (to appoint char in buf)
+
+	int maxcols = -1; // Maximum columns detected. -1 is the base, default.
+	int cols = 0;     // The amount of columns detected.
+	int rows = 0;     // The amount of rows.
+
+	int r;
+	while (r = fgetc(f), r != EOF) {
+		// When we discover a newline, we hit the end of the row.
+		// Reset some indicators and make us ready to parse a new row.
+		if (r == '\n') {
+			// First iteration of columns. This row contains the
+			// expected amount of columns. If the following amount
+			// do not match up, write an error and bail out.
+			if (maxcols == -1) {
+				maxcols = cols;
+			} else if (maxcols != cols) {
+				fprintf(stderr,
+					"warning: inconsistent colums detected "
+					"(expected %d, got %d) at (%d,%d)\n", maxcols, cols, rows, cols);
+				return false;
+			}
+
+			rows++;
+			bi = 0;
+			cols = 0;
+		}
+
+		// If we hit a space, it's a separator of a column.
+		if (r == ' ') {
+			bi = 0;
+		}
+
+		// Check if the read char is a hexadecimal digit, and
+		// if so, append it to the buffer.
+		if (isxdigit(r)) {
+			buf[bi++] = r;
+		} else {
+			// TODO: this
+			//fprintf(stderr, "error: %c is not 
+		}
+
+		if (bi == 2) {
+			int cruft = strtol(buf, NULL, 16);
+			tilemap_add(map, cruft);
+			//printf("%3d ", cruft);
+			cols++;
+		}
+
+		if (bi > 2) {
+			fprintf(stderr, "warning: expecting single byte\n");
+			return false;
+		}
+	}
+
+	map->w = maxcols;
+	map->h = rows;
+
+	return true;
+
+}
+
+void tilemap_add(struct tilemap* m, int tileval) {
+	assert(m != NULL);
+	m->tiles[m->len++] = tileval;
+	m->tiles = realloc(m->tiles, (m->len + 1) * sizeof(int));
+}
+
+
+
 struct spritesheet {
 	int width;  // width of the spritesheet
 	int height; // height of the spritesheet
@@ -61,13 +164,6 @@ void rendersprite(const struct spritesheet* ss, SDL_Renderer* renderer) {
 int main(int argc, char* argv[]) {
 	(void)(argc);
 	(void)(argv);
-
-	uint8_t* zoit = calloc(20 * 10, sizeof(uint8_t));
-
-	struct map m;
-	map_init(&m);
-	map_set_tiles(&m, zoit);
-	map_free(&m);
 
 	return 0;
 }

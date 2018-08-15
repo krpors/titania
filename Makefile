@@ -3,10 +3,10 @@ CFLAGS += $(shell pkg-config --cflags sdl2)
 LDLIBS =  $(shell pkg-config --libs sdl2)
 LDLIBS =  $(shell pkg-config --libs SDL2_image)
 LDLIBS += -lm # for math
-objects = main.o
+objects = main.o tilemap.o
 
 all: main
-list: $(objects)
+main: $(objects)
 
 debug: all
 debug: CPPFLAGS += -UNDEBUG

@@ -1,3 +1,5 @@
+#include "tilemap.h"
+
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
@@ -12,118 +14,6 @@
 #define debug(s); fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, s);
 
 SDL_Renderer* gRenderer = NULL;
-
-/*
- * The tilemap.
- */
-struct tilemap {
-	int* tiles;
-	int len;
-	int w;
-	int h;
-};
-
-void tilemap_init(struct tilemap* m);
-bool tilemap_read(struct tilemap* m, const char* path);
-int  tilemap_get(struct tilemap* m, int x, int y);
-void tilemap_add(struct tilemap* m, int tileval);
-void tilemap_free(struct tilemap* m);
-
-bool tilemap_read(struct tilemap* map, const char* path) {
-	map->tiles = calloc(1, sizeof(int));
-	map->len = 0;
-	map->w = 0;
-	map->h = 0;
-
-	FILE* f = fopen(path, "r");
-	if (f == NULL) {
-		perror(path);
-	}
-
-	char buf[3] = { 0 }; // This buffer will be filled with each read hex digit.
-	int  bi = 0;         // The buffer index (to appoint char in buf)
-
-	int maxcols = -1; // Maximum columns detected. -1 is the base, default.
-	int cols = 0;     // The amount of columns detected.
-	int rows = 0;     // The amount of rows.
-
-	int r;
-	while (r = fgetc(f), r != EOF) {
-		// When we discover a newline, we hit the end of the row.
-		// Reset some indicators and make us ready to parse a new row.
-		if (r == '\n') {
-			// First iteration of columns. This row contains the
-			// expected amount of columns. If the following amount
-			// do not match up, write an error and bail out.
-			if (maxcols == -1) {
-				maxcols = cols;
-			} else if (maxcols != cols) {
-				fprintf(stderr,
-					"warning: inconsistent colums detected "
-					"(expected %d, got %d) at (%d,%d)\n", maxcols, cols, rows, cols);
-				fclose(f);
-				return false;
-			}
-
-			rows++;
-			bi = 0;
-			cols = 0;
-		}
-
-		// If we hit a space, it's a separator of a column.
-		if (r == ' ') {
-			bi = 0;
-		}
-
-		// Check if the read char is a hexadecimal digit, and
-		// if so, append it to the buffer.
-		if (isxdigit(r)) {
-			buf[bi++] = r;
-		} else {
-			// TODO: this
-			//fprintf(stderr, "error: %c is not
-		}
-
-		if (bi == 2) {
-			int cruft = strtol(buf, NULL, 16);
-			tilemap_add(map, cruft);
-			//printf("%3d ", cruft);
-			cols++;
-		}
-
-		if (bi > 2) {
-			fprintf(stderr, "warning: expecting single byte\n");
-			return false;
-		}
-	}
-	fclose(f);
-
-	map->w = maxcols;
-	map->h = rows;
-
-	return true;
-
-}
-
-int tilemap_get(struct tilemap* m, int x, int y) {
-	assert(x >= 0 && x < m->w);
-	assert(y >= 0 && y < m->h);
-
-	return m->tiles[x * m->w + y];
-}
-
-void tilemap_add(struct tilemap* m, int tileval) {
-	assert(m != NULL);
-	m->tiles[m->len++] = tileval;
-	m->tiles = realloc(m->tiles, (m->len + 1) * sizeof(int));
-}
-
-void tilemap_free(struct tilemap* m) {
-	assert(m != NULL);
-	free(m->tiles);
-}
-
-
 
 struct spritesheet {
 	int width;  // width of the spritesheet
@@ -170,33 +60,26 @@ void rendersprite(const struct spritesheet* ss, SDL_Renderer* renderer) {
 	SDL_RenderCopy(renderer, ss->texture,  &src, &dst);
 }
 
-int main(int argc, char* argv[]) {
-	(void)(argc);
-	(void)(argv);
+void rendertilemap(const struct tilemap* m, SDL_Renderer* r) {
+	int tw = 64;
+	for(int y = 0; y < m->h; y++) {
+		for (int x = 0; x < m->w; x++) {
+			int bleh = tilemap_get(m, x, y);
+			if (bleh == TILE_BRICK) {
+				SDL_SetRenderDrawColor(gRenderer, 255, 0, 0, 255);
+			} else if (bleh == 0xaa) {
+				SDL_SetRenderDrawColor(gRenderer, 255, 255, 0, 255);
+			} else if (bleh == TILE_NONE) {
+				SDL_SetRenderDrawColor(gRenderer, 0, 0, 0, 0);
+			}
 
-	struct tilemap tm;
-	if (!tilemap_read(&tm, "tilemap.txt")) {
-		fprintf(stderr, "unable to read file\n");
-		tilemap_free(&tm);
-		exit(1);
-	}
+			SDL_Rect rect = { x * tw, y * tw, tw, tw };
+			SDL_RenderFillRect(r, &rect);
 
-	for (int i = 0; i < tm.len; i++) {
-		if (i % tm.w == 0) {
-			printf("\n");
 		}
-		printf("%02x ", tm.tiles[i]);
 	}
-
-	int t = tilemap_get(&tm, 8, 8);
-	printf("\n\n%02x\n", t);
-
-	tilemap_free(&tm);
-
-	return 0;
 }
 
-#if 0
 int main(int argc, char* argv[]) {
 	(void)(argc);
 	(void)(argv);
@@ -213,7 +96,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	SDL_Window* window = SDL_CreateWindow(
-		"Platformer",
+		"Titania",
 		SDL_WINDOWPOS_UNDEFINED,
 		SDL_WINDOWPOS_UNDEFINED,
 		800, 600,
@@ -228,11 +111,14 @@ int main(int argc, char* argv[]) {
 	SDL_SetRenderDrawBlendMode(gRenderer, SDL_BLENDMODE_BLEND);
 	SDL_SetRenderDrawColor(gRenderer, 0, 0, 0, 0);
 
-	struct spritesheet sheet;
-	spritesheet_init(&sheet, "/home/krpors/Development/pixelart.png");
+	struct tilemap tm;
+	if (!tilemap_read(&tm, "tilemap.txt")) {
+		tilemap_free(&tm);
+		exit(1);
+	}
+
 
 	SDL_Event e;
-
 	bool quit = false;
 	bool pause = false;
 
@@ -266,7 +152,7 @@ int main(int argc, char* argv[]) {
 		SDL_SetRenderDrawColor(gRenderer, 0, 0, 0, 0);
 		SDL_RenderClear(gRenderer);
 
-		rendersprite(&sheet, gRenderer);
+		rendertilemap(&tm, gRenderer);
 
 		SDL_RenderPresent(gRenderer);
 	}
@@ -277,4 +163,3 @@ int main(int argc, char* argv[]) {
 	SDL_Quit();
 	return 0;
 }
-#endif

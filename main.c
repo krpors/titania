@@ -25,14 +25,9 @@ struct tilemap {
 
 void tilemap_init(struct tilemap* m);
 bool tilemap_read(struct tilemap* m, const char* path);
+int  tilemap_get(struct tilemap* m, int x, int y);
 void tilemap_add(struct tilemap* m, int tileval);
-
-void tilemap_init(struct tilemap* m) {
-	m->tiles = calloc(1, sizeof(int));
-	m->len = 0;
-	m->w = 0;
-	m->h = 0;
-}
+void tilemap_free(struct tilemap* m);
 
 bool tilemap_read(struct tilemap* map, const char* path) {
 	map->tiles = calloc(1, sizeof(int));
@@ -66,6 +61,7 @@ bool tilemap_read(struct tilemap* map, const char* path) {
 				fprintf(stderr,
 					"warning: inconsistent colums detected "
 					"(expected %d, got %d) at (%d,%d)\n", maxcols, cols, rows, cols);
+				fclose(f);
 				return false;
 			}
 
@@ -85,7 +81,7 @@ bool tilemap_read(struct tilemap* map, const char* path) {
 			buf[bi++] = r;
 		} else {
 			// TODO: this
-			//fprintf(stderr, "error: %c is not 
+			//fprintf(stderr, "error: %c is not
 		}
 
 		if (bi == 2) {
@@ -100,6 +96,7 @@ bool tilemap_read(struct tilemap* map, const char* path) {
 			return false;
 		}
 	}
+	fclose(f);
 
 	map->w = maxcols;
 	map->h = rows;
@@ -108,10 +105,22 @@ bool tilemap_read(struct tilemap* map, const char* path) {
 
 }
 
+int tilemap_get(struct tilemap* m, int x, int y) {
+	assert(x >= 0 && x < m->w);
+	assert(y >= 0 && y < m->h);
+
+	return m->tiles[x * m->w + y];
+}
+
 void tilemap_add(struct tilemap* m, int tileval) {
 	assert(m != NULL);
 	m->tiles[m->len++] = tileval;
 	m->tiles = realloc(m->tiles, (m->len + 1) * sizeof(int));
+}
+
+void tilemap_free(struct tilemap* m) {
+	assert(m != NULL);
+	free(m->tiles);
 }
 
 
@@ -125,9 +134,9 @@ struct spritesheet {
 };
 
 bool spritesheet_init(struct spritesheet* ss, const char* path) {
-	assert(ss != null);
-	assert(path != null);
-	assert(gRenderer != null);
+	assert(ss != NULL);
+	assert(path != NULL);
+	assert(gRenderer != NULL);
 
 	SDL_Surface* surface = IMG_Load(path);
 	if (surface == NULL) {
@@ -164,6 +173,25 @@ void rendersprite(const struct spritesheet* ss, SDL_Renderer* renderer) {
 int main(int argc, char* argv[]) {
 	(void)(argc);
 	(void)(argv);
+
+	struct tilemap tm;
+	if (!tilemap_read(&tm, "tilemap.txt")) {
+		fprintf(stderr, "unable to read file\n");
+		tilemap_free(&tm);
+		exit(1);
+	}
+
+	for (int i = 0; i < tm.len; i++) {
+		if (i % tm.w == 0) {
+			printf("\n");
+		}
+		printf("%02x ", tm.tiles[i]);
+	}
+
+	int t = tilemap_get(&tm, 8, 8);
+	printf("\n\n%02x\n", t);
+
+	tilemap_free(&tm);
 
 	return 0;
 }

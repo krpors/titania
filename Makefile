@@ -1,4 +1,3 @@
-CPPFLAGS = -DNDEBUG
 CFLAGS =  -std=gnu99 -ggdb -Wall -Wextra -pedantic -O3 -MMD -MP
 CFLAGS += $(shell pkg-config --cflags sdl2)
 LDLIBS =  $(shell pkg-config --libs sdl2)

@@ -66,11 +66,11 @@ void rendersprite(const struct spritesheet* ss, SDL_Renderer* renderer) {
 }
 
 void rendertilemap(const struct tilemap* m, SDL_Renderer* r) {
-	int tw = 64;
+	int tw = TILE_SIZE;
 	for(int y = 0; y < m->h; y++) {
 		for (int x = 0; x < m->w; x++) {
 			int bleh = tilemap_get(m, x, y);
-			if (bleh == TILE_BRICK) {
+			if (bleh == TILE_MAP_EDGE) {
 				SDL_SetRenderDrawColor(gRenderer, 255, 0, 0, 255);
 			} else if (bleh == 0xaa) {
 				SDL_SetRenderDrawColor(gRenderer, 255, 255, 0, 255);
@@ -132,11 +132,19 @@ void handle_keypress_player(const SDL_Event* event, struct player* p) {
 		case SDLK_RIGHT:
 			player_right(p);
 			break;
+		case SDLK_UP:
+			player_up(p);
+			break;
+		case SDLK_DOWN:
+			player_down(p);
+			break;
 		}
 	} else if (event->type == SDL_KEYUP) {
 		switch (event->key.keysym.sym) {
 		case SDLK_LEFT:
 		case SDLK_RIGHT:
+		case SDLK_UP:
+		case SDLK_DOWN:
 			player_stop(p);
 			break;
 		}

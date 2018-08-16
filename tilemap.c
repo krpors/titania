@@ -84,6 +84,9 @@ bool tilemap_read(struct tilemap* map, const char* path) {
 }
 
 int tilemap_get(const struct tilemap* m, int x, int y) {
+	if (x < 0) {
+		return 0xff;
+	}
 	assert(x >= 0 && x < m->w);
 	assert(y >= 0 && y < m->h);
 	// We're having a one dimensional array. We know the width and

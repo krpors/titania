@@ -3,13 +3,12 @@
 
 #include <stdbool.h>
 
-static const int TILE_NONE = 0x00;
-static const int TILE_BRICK = 0xff;
-
 enum tiletype {
-	NONE = 0x00,
-	BRICK = 0xff,
+	TILE_NONE = 0x00,
+	TILE_MAP_EDGE = 0xff,
 };
+
+static const int TILE_SIZE = 64;
 
 /*
  * The tilemap.

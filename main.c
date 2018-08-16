@@ -1,4 +1,5 @@
 #include "tilemap.h"
+#include "player.h"
 
 #include <assert.h>
 #include <math.h>
@@ -11,9 +12,13 @@
 #include <SDL.h>
 #include <SDL_image.h>
 
-#define debug(s); fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, s);
+#define debug(s, ...); fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, s);
 
-SDL_Renderer* gRenderer = NULL;
+static SDL_Renderer* gRenderer = NULL;
+static SDL_Window* gWindow = NULL;
+static bool quit = false;
+static bool pause = false;
+static struct player p;
 
 struct spritesheet {
 	int width;  // width of the spritesheet
@@ -80,6 +85,64 @@ void rendertilemap(const struct tilemap* m, SDL_Renderer* r) {
 	}
 }
 
+void draw_grid(SDL_Renderer* r) {
+	int w = 64;
+	SDL_SetRenderDrawColor(r, 0, 255, 0, 55);
+	for (int x = 0; x < 800; x += w) {
+		SDL_RenderDrawLine(r, x + w, 0, x + w, 600);
+	}
+	for (int y = 0; y < 600; y += w) {
+		SDL_RenderDrawLine(r, 0, y + w, 800, y + w);
+	}
+}
+
+void handle_keypress(const SDL_Event* event) {
+	if (event->type != SDL_KEYDOWN && event->type != SDL_KEYUP) {
+		return;
+	}
+
+	switch (event->key.keysym.sym) {
+	case SDLK_f:
+		SDL_SetWindowFullscreen(gWindow, SDL_WINDOW_FULLSCREEN);
+		break;
+	case SDLK_ESCAPE:
+		quit = true;
+		break;
+	case SDLK_SPACE:
+		if (event->key.type == SDL_KEYDOWN) {
+			pause = !pause;
+		}
+		break;
+	}
+}
+
+/**
+ * Handles keypresses for the player.
+ */
+void handle_keypress_player(const SDL_Event* event, struct player* p) {
+	if (event->type != SDL_KEYDOWN && event->type != SDL_KEYUP) {
+		return;
+	}
+
+	if (event->type == SDL_KEYDOWN) {
+		switch (event->key.keysym.sym) {
+		case SDLK_LEFT:
+			player_left(p);
+			break;
+		case SDLK_RIGHT:
+			player_right(p);
+			break;
+		}
+	} else if (event->type == SDL_KEYUP) {
+		switch (event->key.keysym.sym) {
+		case SDLK_LEFT:
+		case SDLK_RIGHT:
+			player_stop(p);
+			break;
+		}
+	}
+}
+
 int main(int argc, char* argv[]) {
 	(void)(argc);
 	(void)(argv);
@@ -95,19 +158,19 @@ int main(int argc, char* argv[]) {
 		exit(1);
 	}
 
-	SDL_Window* window = SDL_CreateWindow(
+	gWindow = SDL_CreateWindow(
 		"Titania",
 		SDL_WINDOWPOS_UNDEFINED,
 		SDL_WINDOWPOS_UNDEFINED,
 		800, 600,
 		SDL_WINDOW_SHOWN);
 
-	if (window == NULL) {
+	if (gWindow == NULL) {
 		fprintf(stderr, "Cannot open window: %s\n", SDL_GetError());
 		exit(1);
 	}
 
-	gRenderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+	gRenderer = SDL_CreateRenderer(gWindow, -1, SDL_RENDERER_ACCELERATED);
 	SDL_SetRenderDrawBlendMode(gRenderer, SDL_BLENDMODE_BLEND);
 	SDL_SetRenderDrawColor(gRenderer, 0, 0, 0, 0);
 
@@ -117,32 +180,18 @@ int main(int argc, char* argv[]) {
 		exit(1);
 	}
 
+	player_init(&p);
+	p.map = &tm;
 
 	SDL_Event e;
-	bool quit = false;
-	bool pause = false;
 
 	while (!quit) {
 		while (SDL_PollEvent(&e) != 0) {
 			if (e.type == SDL_QUIT) {
 				quit = true;
 			}
-
-			if (e.type == SDL_KEYDOWN) {
-				switch (e.key.keysym.sym) {
-				case SDLK_f:
-					SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
-					break;
-				case SDLK_ESCAPE:
-					quit = true;
-					break;
-				case SDLK_SPACE:
-					if (e.key.type == SDL_KEYDOWN) {
-						pause = !pause;
-					}
-					break;
-				}
-			}
+			handle_keypress(&e);
+			handle_keypress_player(&e, &p);
 		}
 
 		if (pause) {
@@ -152,13 +201,17 @@ int main(int argc, char* argv[]) {
 		SDL_SetRenderDrawColor(gRenderer, 0, 0, 0, 0);
 		SDL_RenderClear(gRenderer);
 
+		player_update(&p);
+
 		rendertilemap(&tm, gRenderer);
+		player_draw(&p, gRenderer);
+		draw_grid(gRenderer);
 
 		SDL_RenderPresent(gRenderer);
 	}
 
 	SDL_DestroyRenderer(gRenderer);
-	SDL_DestroyWindow(window);
+	SDL_DestroyWindow(gWindow);
 	IMG_Quit();
 	SDL_Quit();
 	return 0;

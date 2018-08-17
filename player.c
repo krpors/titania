@@ -14,6 +14,9 @@ void player_init(struct player* p) {
 	p->dy = 0.2f;
 	p->w = 18;
 	p->h = 18;
+
+	p->g = 0.0f;
+	p->falling = false;
 }
 
 void player_left(struct player* p) {
@@ -55,6 +58,8 @@ static bool player_is_colliding(struct player* p, float newx, float newy) {
 	printf("\tOccupied tiles: (%2d,%2d)-(%2d,%2d)\n", tilex1, tiley1, tilex2, tiley2);
 #endif
 
+	// Now iterate over (tilex1, tiley1) - (tilex2, tiley2), and check
+	// whether the tile is collidable.
 	for (int x = tilex1; x <= tilex2; x++) {
 		for (int y = tiley1; y <= tiley2; y++) {
 			int tile = tilemap_get(p->map, x, y);
@@ -68,14 +73,17 @@ static bool player_is_colliding(struct player* p, float newx, float newy) {
 }
 
 void player_update(struct player* p) {
-
+	// First we have to have to possible new positions, so declare
+	// those, starting with our current x and y positions.
 	float newx = p->x;
 	float newy = p->y;
 
+	// If we're moving left, calculate our possible new x position.
 	if (p->left) {
 		newx = p->x - p->dx;
 	}
 
+	// If we're moving right, calculate our possible new y position.
 	if (p->right) {
 		newx = p->x + p->dx;
 	}
@@ -84,18 +92,28 @@ void player_update(struct player* p) {
 		newy = p->y - p->dy;
 	}
 
-	if (p->down) {
-		newy = p->y + p->dy;
-	}
-
-	if (p->left || p->right || p->up || p->down) {
-		if (player_is_colliding(p, newx, newy)) {
-			return;
+	// If we are moving left, or right, and if we are NOT colliding
+	// based on the new x position (but the same y position - this is
+	// important!), update our x position with the new x position.
+	if (p->left || p->right) {
+		if (!player_is_colliding(p, newx, p->y)) {
+			p->x = newx;
 		}
 	}
 
-	p->x = newx;
-	p->y = newy;
+	// always exert some downward force (e.g. graviteh).
+	p->g += 0.0001f;
+	newy += p->g;
+
+	// Check if we are colliding over the y axis, using the
+	// current x position, and the newly calculated y position.
+	if (player_is_colliding(p, p->x, newy)) {
+		p->g = 0.0f;
+		p->falling = false;
+	} else {
+		p->falling = true;
+		p->y = newy;
+	}
 }
 
 void player_draw(struct player* p, SDL_Renderer* r) {

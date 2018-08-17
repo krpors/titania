@@ -62,10 +62,11 @@ bool tilemap_read(struct tilemap* map, const char* path) {
 			//fprintf(stderr, "error: %c is not
 		}
 
+		// if we read two bytes, (e.g. aa, fa, 09, 18), convert the buffer
+		// contents to an integer, and add it to the map.
 		if (bi == 2) {
 			int cruft = strtol(buf, NULL, 16);
 			tilemap_add(map, cruft);
-			//printf("%3d ", cruft);
 			cols++;
 		}
 
@@ -84,11 +85,12 @@ bool tilemap_read(struct tilemap* map, const char* path) {
 }
 
 int tilemap_get(const struct tilemap* m, int x, int y) {
-	if (x < 0) {
-		return 0xff;
+	// Protect from going out of bounds. If that happens, return
+	// the tile type TILE_MAP_EDGE so we don't get weird behaviour
+	// by indexing impossible values on the array.
+	if (x < 0 || x > m->w || y < 0 || y > m->h) {
+		return TILE_MAP_EDGE;
 	}
-	assert(x >= 0 && x < m->w);
-	assert(y >= 0 && y < m->h);
 	// We're having a one dimensional array. We know the width and
 	// height, so we can index that with (x,y) coords by using the
 	// next formula.

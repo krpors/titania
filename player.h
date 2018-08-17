@@ -14,6 +14,9 @@ struct player {
 	int w;
 	int h;
 
+	float g;
+	bool falling;
+
 	bool left;
 	bool right;
 	bool up;

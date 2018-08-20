@@ -3,7 +3,7 @@ CFLAGS += $(shell pkg-config --cflags sdl2)
 LDLIBS =  $(shell pkg-config --libs sdl2)
 LDLIBS =  $(shell pkg-config --libs SDL2_image)
 LDLIBS += -lm # for math
-objects = main.o tilemap.o player.o bitmapfont.o
+objects = main.o tilemap.o player.o bitmapfont.o util.o
 
 all: main
 main: $(objects)

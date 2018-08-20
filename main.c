@@ -192,8 +192,9 @@ int main(int argc, char* argv[]) {
 	player_init(&p);
 	p.map = &tm;
 
+	const char* glyphs = " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,!?-+/():;%&`'*#=[]\"";
 	struct bitmapfont bmf;
-	if (!bitmapfont_init(&bmf, "font.png")) {
+	if (!bitmapfont_init(&bmf, gRenderer, "font.png", glyphs)) {
 		exit(1);
 	}
 
@@ -220,6 +221,8 @@ int main(int argc, char* argv[]) {
 		rendertilemap(&tm, gRenderer);
 		//player_draw(&p, gRenderer);
 		draw_grid(gRenderer);
+
+		bitmapfont_render(&bmf, gRenderer, "Welcome. This is some test text. It works!");
 
 		SDL_RenderPresent(gRenderer);
 	}

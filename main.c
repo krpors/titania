@@ -1,5 +1,6 @@
 #include "tilemap.h"
 #include "player.h"
+#include "bitmapfont.h"
 
 #include <assert.h>
 #include <math.h>
@@ -191,6 +192,11 @@ int main(int argc, char* argv[]) {
 	player_init(&p);
 	p.map = &tm;
 
+	struct bitmapfont bmf;
+	if (!bitmapfont_init(&bmf, "font.png")) {
+		exit(1);
+	}
+
 	SDL_Event e;
 
 	while (!quit) {
@@ -209,14 +215,16 @@ int main(int argc, char* argv[]) {
 		SDL_SetRenderDrawColor(gRenderer, 0, 0, 0, 0);
 		SDL_RenderClear(gRenderer);
 
-		player_update(&p);
+		//player_update(&p);
 
 		rendertilemap(&tm, gRenderer);
-		player_draw(&p, gRenderer);
+		//player_draw(&p, gRenderer);
 		draw_grid(gRenderer);
 
 		SDL_RenderPresent(gRenderer);
 	}
+
+	bitmapfont_free(&bmf);
 
 	SDL_DestroyRenderer(gRenderer);
 	SDL_DestroyWindow(gWindow);

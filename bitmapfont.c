@@ -3,6 +3,7 @@
 
 #include <assert.h>
 #include <stdbool.h>
+#include <stdarg.h>
 
 #include <SDL_image.h>
 
@@ -10,67 +11,83 @@
 bool bitmapfont_init(struct bitmapfont* bmf, SDL_Renderer* renderer, const char* path, const char* glyphs) {
 	assert(bmf != NULL);
 	assert(path != NULL);
+	assert(renderer != NULL);
 
+	// Pre-initialize some member so we can safely free them when things run
+	// into an error.
+	bmf->glyphs_len = 0;
+	bmf->rects = malloc(1 * sizeof(SDL_Rect*));
+	bmf->texture = NULL;
+
+	// The renderer is used to create a texture from a surface.
 	bmf->renderer = renderer;
 
-	bmf->surf = IMG_Load(path);
-	if (bmf->surf == NULL) {
-		fprintf(stderr, "%s\n", IMG_GetError());
+	// Dupe the glyphs string.
+	bmf->glyphs = strdup(glyphs);
+	if (bmf->glyphs == NULL) {
+		// failed to dupe, should hardly be the case, ever.
+		perror("unable to duplicate string");
+		bitmapfont_free(bmf);
 		return false;
 	}
 
-	// Prevent lots of ->...->--> ...
-	SDL_Surface* surf = bmf->surf;
-	SDL_PixelFormat* fmt = bmf->surf->format;
+	bmf->surface = IMG_Load(path);
+	if (bmf->surface == NULL) {
+		fprintf(stderr, "%s\n", IMG_GetError());
+		bitmapfont_free(bmf);
+		return false;
+	}
+
+	SDL_PixelFormat* fmt = bmf->surface->format;
 
 	// Fonts must be 8 bits per pixel.
 	if (fmt->BitsPerPixel != 8) {
-		fprintf(stderr, "font image must be 8bpp\n");
+		fprintf(stderr, "font image must be 8 bits per pixel\n");
+		bitmapfont_free(bmf);
 		return false;
 	}
 
-	printf("Surface w x h = (%d, %d)\n", surf->w, surf->h);
+	// We're going to read some pixels, so SDL requires us to lock the surface
+	// before doing anything with it.
+	SDL_LockSurface(bmf->surface);
 
-	SDL_LockSurface(surf);
-
-	// We get the first pixel at the top left corner of the
-	// image. This pixel denotes the separator of the glyphs
-	// in the image.
-	Uint8 index = *(Uint8 *)surf->pixels;
+	// We get the first pixel at the top left corner of the image. This pixel
+	// color denotes the separator of the glyphs in the image.
+	Uint8 index = *(Uint8 *)bmf->surface->pixels;
 	SDL_Color sepColor = fmt->palette->colors[index];
 
-	printf("Separator sepColor is: %d,%d,%d\n", sepColor.r, sepColor.g, sepColor.b);
-
 	int z = 0;
-
-	bmf->rects = malloc(1 * sizeof(SDL_Rect*));
 
 	// If this boolean is set to true, we are about to read the
 	// width of a glyph in the iteration.
 	bool read_glyph = false;
 
-	size_t glyph_count = 0;
-
-	for (int i = 0; i < surf->w; i++) {
-		Uint8 bla = ((Uint8*) surf->pixels)[i];
+	// We only need to iterate over the width of the image, since each glyph
+	// is a rectangle anyway, and it should be separated by the separator color.
+	for (int x = 0; x < bmf->surface->w; x++) {
+		Uint8 bla = ((Uint8*) bmf->surface->pixels)[x];
 		SDL_Color currentColor = fmt->palette->colors[bla];
 
-		// Is t he current pixel color a separator color?
+		// Is the current pixel color a separator color?
 		bool curr_is_sep = is_color_equal(&currentColor, &sepColor);
 
 		if (curr_is_sep) {
 			if (read_glyph) {
 
+				// Create a rectangle on the heap, add it to the `rects' array.
 				SDL_Rect* r1 = malloc(1 * sizeof(SDL_Rect));
-				r1->x = i - z;
+				r1->x = x - z;
 				r1->y = 0;
 				r1->w = z;
-				r1->h = surf->h;
-				bmf->rects[glyph_count] = r1;
+				r1->h = bmf->surface->h;
+				bmf->rects[bmf->glyphs_len] = r1;
 
-				//printf("Glyph %c: (%d,%d)-(%d w × %d h)\n", glyphs[glyph_count], r.x, r.y, r.w, r.h);
-				glyph_count++;
-				bmf->rects = realloc(bmf->rects, (glyph_count + 1) * sizeof(SDL_Rect*));
+				bmf->glyphs_len++;
+
+				// Reallocate the array with extra space for another
+				// rectangle.  We don't care too much about optimalization,
+				// so we increase it with 1 sizeof each time.
+				bmf->rects = realloc(bmf->rects, (bmf->glyphs_len + 1) * sizeof(SDL_Rect*));
 			}
 			z = 0;
 			read_glyph = false;
@@ -79,69 +96,104 @@ bool bitmapfont_init(struct bitmapfont* bmf, SDL_Renderer* renderer, const char*
 			z++;
 		}
 	}
-	SDL_UnlockSurface(surf);
+	SDL_UnlockSurface(bmf->surface);
 
 	// We check the amount of glyphs found in the image with the
 	// glyphs in the const char* argument of the function. They
 	// should be equal (or it won't make much sense).
-	if (glyph_count != strlen(glyphs)) {
+	if (bmf->glyphs_len != strlen(glyphs)) {
 		fprintf(stderr,
 			"glyph count (%li) in image does not equal "
-			"the glyph count in the string (%li)\n", glyph_count, strlen(glyphs));
+			"the glyph count in the string (%li)\n", bmf->glyphs_len, strlen(glyphs));
+		bitmapfont_free(bmf);
 		return false;
 	}
 
-	// Everything went OK. Dupe the glyphs string.
-	bmf->glyphs = strdup(glyphs);
-	if (bmf->glyphs == NULL) {
-		// failed to dupe, should hardly be the case, ever.
-		perror("unable to duplicate string");
-		return false;
-	}
 
-	bmf->texture = SDL_CreateTextureFromSurface(renderer, surf);
+	bmf->texture = SDL_CreateTextureFromSurface(renderer, bmf->surface);
 	if (bmf->texture == NULL) {
 		fprintf(stderr, "Unable to create texture from surface: %s\n", SDL_GetError());
-		// TODO: freeeee
+		bitmapfont_free(bmf);
 		return false;
 	}
 
-#if 0
-	for (int i = 0; i < (int)glyph_count; ++i) {
-		SDL_Rect* r = bmf->rects[i];
-		printf("glyph %d => %d,%d\n", i, r->x, r->w);
-	}
-#endif
+	// After we are done, we don't need the surface so we can free it prematurely.
+	SDL_FreeSurface(bmf->surface);
+	bmf->surface = NULL;
 
 	return true;
 }
 
 void bitmapfont_free(struct bitmapfont* bmf) {
-	SDL_FreeSurface(bmf->surf);
-	free(bmf->glyphs);
-	free(bmf->rects);
+	SDL_FreeSurface(bmf->surface);
+	bmf->surface = NULL;
 
-	bmf->surf = NULL;
+	SDL_DestroyTexture(bmf->texture);
+	bmf->texture = NULL;
+
+	free(bmf->glyphs);
 	bmf->glyphs = NULL;
+
+	// Free every malloc'd rectangle
+	for (size_t i = 0; i < bmf->glyphs_len; i++) {
+		free(bmf->rects[i]);
+		bmf->rects[i] = NULL;
+	}
+	// And free the array itself.
+	free(bmf->rects);
 	bmf->rects = NULL;
 }
 
-void bitmapfont_render(struct bitmapfont* bmf, SDL_Renderer* renderer, const char* txt) {
-	// The 'kerning' done based on the width of the glyph.
-	// We increase the spacing each time after rendering a
-	// glyph.
-	int spacing = 0;
-	for (size_t i = 0; i < strlen(txt); i++) {
-		for (size_t j = 0; j < strlen(bmf->glyphs); j++) {
-			if (txt[i] == bmf->glyphs[j]) {
-				SDL_Rect* r = bmf->rects[j];
+void bitmapfont_render(struct bitmapfont* bmf, int x, int y, const char* txt) {
+	// Note: this 'algorithm' is very naive as it is, but does the trick, for now.
 
-				SDL_Rect src = { .x = r->x, .y = r->y, .w = r->w, .h = r->h };
-				SDL_Rect dst = { .x = spacing , .y = 80, .w = r->w, .h = r->h };
-				SDL_RenderCopy(renderer, bmf->texture,  &src, &dst);
-				spacing += r->w;
-				//printf("Matched %c to index %li (%d, %d)\n", txt[i], j, r->x, r->w);
+	size_t txtLen = strlen(txt);
+	// Iterate over all characters in the `txt'...
+	for (size_t i = 0; i < txtLen; i++) {
+		// Check if the current character in `txt' can be found in the `glyphs'
+		// variable. If so, we use the index `j' to access the `rects' array.
+		// That rect contains our rectangle to render the glyph.
+		for (size_t j = 0; j < bmf->glyphs_len; j++) {
+			if (txt[i] == bmf->glyphs[j]) {
+				SDL_Rect* src = bmf->rects[j];
+				SDL_Rect dst = { .x = x, .y = y, .w = src->w, .h = src->h };
+				SDL_RenderCopy(bmf->renderer, bmf->texture, src, &dst);
+
+				// The 'kerning' is done based on the width of the glyph. We
+				// increase the x coordinate with the previous glyph's width
+				// each time after rendering.
+				x += src->w;
 			}
 		}
 	}
+}
+
+void bitmapfont_renderf(struct bitmapfont* bmf, int x, int y, const char* fmt, ...) {
+	// Note: this implementation has been taken from `man vsnprintf`.
+	int size = 0;
+	char* p = NULL;
+	va_list ap;
+
+	// Determine required size:
+	va_start(ap, fmt);
+	size = vsnprintf(p, size, fmt, ap);
+	va_end(ap);
+
+	if (size < 0) {
+		// nothing to do.
+		return;
+	}
+
+	size++; // for '\0'.
+	p = malloc(size * sizeof(char));
+	va_start(ap, fmt);
+	size = vsnprintf(p, size, fmt, ap);
+	if (size < 0) {
+		free(p);
+	}
+	va_end(ap);
+
+	// We got a formatted char*, render it!
+	bitmapfont_render(bmf, x, y, p);
+	free(p);
 }

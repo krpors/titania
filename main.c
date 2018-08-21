@@ -216,18 +216,20 @@ int main(int argc, char* argv[]) {
 		SDL_SetRenderDrawColor(gRenderer, 0, 0, 0, 0);
 		SDL_RenderClear(gRenderer);
 
-		//player_update(&p);
+		player_update(&p);
 
 		rendertilemap(&tm, gRenderer);
-		//player_draw(&p, gRenderer);
+		player_draw(&p, gRenderer);
 		draw_grid(gRenderer);
 
-		bitmapfont_render(&bmf, gRenderer, "Welcome. This is some test text. It works!");
+		bitmapfont_renderf(&bmf, 0,  0, "Player (%3.0f, %3.0f)", p.x, p.y);
+		bitmapfont_renderf(&bmf, 0, 14, "Player falling: %i", p.falling);
 
 		SDL_RenderPresent(gRenderer);
 	}
 
 	bitmapfont_free(&bmf);
+	tilemap_free(&tm);
 
 	SDL_DestroyRenderer(gRenderer);
 	SDL_DestroyWindow(gWindow);

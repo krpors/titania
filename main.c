@@ -117,41 +117,6 @@ void handle_keypress(const SDL_Event* event) {
 	}
 }
 
-/**
- * Handles keypresses for the player.
- */
-void handle_keypress_player(const SDL_Event* event, struct player* p) {
-	if (event->type != SDL_KEYDOWN && event->type != SDL_KEYUP) {
-		return;
-	}
-
-	if (event->type == SDL_KEYDOWN) {
-		switch (event->key.keysym.sym) {
-		case SDLK_LEFT:
-			player_left(p);
-			break;
-		case SDLK_RIGHT:
-			player_right(p);
-			break;
-		case SDLK_UP:
-			player_up(p);
-			break;
-		case SDLK_DOWN:
-			player_down(p);
-			break;
-		}
-	} else if (event->type == SDL_KEYUP) {
-		switch (event->key.keysym.sym) {
-		case SDLK_LEFT:
-		case SDLK_RIGHT:
-		case SDLK_UP:
-		case SDLK_DOWN:
-			player_stop(p);
-			break;
-		}
-	}
-}
-
 int main(int argc, char* argv[]) {
 	(void)(argc);
 	(void)(argv);
@@ -200,30 +165,42 @@ int main(int argc, char* argv[]) {
 
 	SDL_Event e;
 
+	float deltaTime = 0.0f;
+
 	while (!quit) {
+
 		while (SDL_PollEvent(&e) != 0) {
 			if (e.type == SDL_QUIT) {
 				quit = true;
 			}
 			handle_keypress(&e);
-			handle_keypress_player(&e, &p);
+			player_handle_event(&p, &e);
 		}
 
 		if (pause) {
+			// TODO: quick hack. When pausing, the timestep would
+			// increase to very large amounts, resulting in real fast
+			// movement/behaviour. This has to be done better I guess.
+			deltaTime = SDL_GetTicks();
 			continue;
 		}
+
+		float timeStep = (SDL_GetTicks() - deltaTime) / 1000.0f;
 
 		SDL_SetRenderDrawColor(gRenderer, 0, 0, 0, 0);
 		SDL_RenderClear(gRenderer);
 
-		player_update(&p);
+		player_update(&p, timeStep);
 
 		rendertilemap(&tm, gRenderer);
 		player_draw(&p, gRenderer);
 		draw_grid(gRenderer);
 
-		bitmapfont_renderf(&bmf, 0,  0, "Player (%3.0f, %3.0f)", p.x, p.y);
-		bitmapfont_renderf(&bmf, 0, 14, "Player falling: %i", p.falling);
+		bitmapfont_renderf(&bmf, 0,  0, "P(%3.0f, %3.0f), vx: %f, dy: %f", p.x, p.y, p.dx, p.dy);
+		bitmapfont_renderf(&bmf, 0, 14, "  falling: %i", p.falling);
+		bitmapfont_renderf(&bmf, 0, 28, "  jumping: %i", p.jumping);
+
+		deltaTime = SDL_GetTicks();
 
 		SDL_RenderPresent(gRenderer);
 	}

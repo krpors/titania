@@ -196,9 +196,10 @@ int main(int argc, char* argv[]) {
 		player_draw(&p, gRenderer);
 		draw_grid(gRenderer);
 
-		bitmapfont_renderf(&bmf, 0,  0, "P(%3.0f, %3.0f), vx: %f, dy: %f", p.x, p.y, p.dx, p.dy);
-		bitmapfont_renderf(&bmf, 0, 14, "  falling: %i", p.falling);
-		bitmapfont_renderf(&bmf, 0, 28, "  jumping: %i", p.jumping);
+		bitmapfont_renderf(&bmf, 0, 0 * 14, "P(%3.0f, %3.0f), vx: %f, dy: %f", p.x, p.y, p.dx, p.dy);
+		bitmapfont_renderf(&bmf, 0, 1 * 14, "  jumping: %d", p.jumping);
+		bitmapfont_renderf(&bmf, 0, 2 * 14, "  can jump: %d", p.can_jump);
+		bitmapfont_renderf(&bmf, 0, 3 * 14, "  boop_life: %-3d", p.boop_life);
 
 		deltaTime = SDL_GetTicks();
 

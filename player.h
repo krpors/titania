@@ -7,7 +7,9 @@
 static const float PLAYER_MIN_DX = 190.0f;
 static const float PLAYER_MAX_DX = 280.0f;
 
-static const float PLAYER_MAX_DY = 280.0f;
+static const float PLAYER_MAX_DY = 400.0f;
+
+static const float GRAVITY = 1050.0f;
 
 struct player {
 	struct tilemap* map;
@@ -19,8 +21,11 @@ struct player {
 	int w;
 	int h;
 
-	bool falling;
+	int bx, by;
+	int boop_life;
+
 	bool jumping;
+	bool can_jump;
 
 	bool left;
 	bool right;

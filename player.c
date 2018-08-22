@@ -11,12 +11,13 @@ void player_init(struct player* p) {
 	p->x  = 120;
 	p->y  = 70;
 	p->dx = PLAYER_MIN_DX;
-	p->dy = 200;
+	p->dy = 0.0f;
 	p->w = 18;
 	p->h = 18;
 
-	p->falling = false;
+	p->boop_life = 0;
 	p->jumping = false;
+	p->can_jump = false;
 }
 
 void player_left(struct player* p) {
@@ -38,7 +39,6 @@ void player_stop(struct player* p) {
 	p->left  = false;
 	p->right = false;
 	p->down = false;
-	p->jumping = false;
 	p->dx = PLAYER_MIN_DX;
 }
 
@@ -97,9 +97,9 @@ void player_update(struct player* p, float delta_time) {
 		newx += p->dx * delta_time;
 	}
 
-	if (p->jumping && !p->falling) {
-		printf("jmpz0r?\n");
-		p->dy = -290.0f;
+	if (p->jumping && p->can_jump) {
+		p->can_jump = false;
+		p->dy = -PLAYER_MAX_DY;
 	}
 
 	// If we are moving left, or right, and if we are NOT colliding
@@ -111,19 +111,33 @@ void player_update(struct player* p, float delta_time) {
 		}
 	}
 
-	// always exert some downward force (e.g. graviteh).
-	p->dy += 1.0f;
+	p->dy += GRAVITY * delta_time;
 	newy += p->dy * delta_time;
-	printf("newy: %d\n", (int)newy);
 
-	// Check if we are colliding over the y axis, using the
-	// current x position, and the newly calculated y position.
-	if (player_is_colliding(p, p->x, newy)) {
-		p->falling = false;
-		p->jumping = false;
-		p->dy = 1.0f;
+	bool colliding = player_is_colliding(p, p->x, newy);
+
+	if (p->boop_life > 0) {
+		p->boop_life -= (delta_time * 1000.0f);
 	} else {
-		p->falling = true;
+		p->boop_life = 0;
+	}
+
+	if (colliding) {
+		if (p->dy < 0.0f) {
+			// Collision with the ceiling, since our dy is negative.
+			printf("Collided with the ceiling\n");
+			p->bx = p->x + (p->w / 4);
+			p->by = p->y - (p->h / 4);
+			p->boop_life = 255;
+		} else if (p->dy >= 0.0f) {
+			// Collision with the ground, we can jump again.
+			p->jumping = false;
+			p->can_jump = true;
+		}
+		// Whether we collided with the ceiling or the bottom,
+		// reset our y velocity to 0.
+		p->dy = 0.0f;
+	} else {
 		p->y = newy;
 	}
 }
@@ -153,6 +167,12 @@ void player_draw(struct player* p, SDL_Renderer* r) {
 		.w = p->w,
 		.h = p->h
 	};
+
+	if (p->boop_life > 0) {
+		SDL_SetRenderDrawColor(r, 255, 255, 255, p->boop_life);
+		SDL_Rect boop = { p->bx, p->by, 10, 10 };
+		SDL_RenderFillRect(r, &boop);
+	}
 
 	SDL_SetRenderDrawColor(r, 200, 200, 200, 155);
 	SDL_RenderFillRect(r, &rekt);

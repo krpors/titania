@@ -4,15 +4,16 @@
 #include <stdbool.h>
 #include <SDL.h>
 
-static const float PLAYER_MIN_DX = 190.0f;
-static const float PLAYER_MAX_DX = 280.0f;
+static const float PLAYER_MIN_DX = 250.0f;
+static const float PLAYER_MAX_DX = 380.0f;
 
-static const float PLAYER_MAX_DY = 400.0f;
+static const float PLAYER_MAX_DY = 600.0f;
 
-static const float GRAVITY = 1050.0f;
+static const float GRAVITY = 1250.0f;
 
 struct player {
 	struct tilemap* map;
+	struct bitmapfont* font;
 
 	float x;
 	float y;
@@ -21,6 +22,7 @@ struct player {
 	int w;
 	int h;
 
+	float scale;
 	int bx, by;
 	int boop_life;
 

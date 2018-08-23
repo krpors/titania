@@ -88,7 +88,7 @@ int tilemap_get(const struct tilemap* m, int x, int y) {
 	// Protect from going out of bounds. If that happens, return
 	// the tile type TILE_MAP_EDGE so we don't get weird behaviour
 	// by indexing impossible values on the array.
-	if (x < 0 || x > m->w || y < 0 || y > m->h) {
+	if (x < 0 || x >= m->w || y < 0 || y >= m->h) {
 		return TILE_MAP_EDGE;
 	}
 	// We're having a one dimensional array. We know the width and

@@ -1,4 +1,5 @@
 #include "player.h"
+#include "bitmapfont.h"
 #include "tilemap.h"
 
 #include <assert.h>
@@ -15,6 +16,7 @@ void player_init(struct player* p) {
 	p->w = 18;
 	p->h = 18;
 
+	p->scale = 1.0f;
 	p->boop_life = 0;
 	p->jumping = false;
 	p->can_jump = false;
@@ -42,18 +44,22 @@ void player_stop(struct player* p) {
 	p->dx = PLAYER_MIN_DX;
 }
 
+// TODO: stop using globals... ?
+extern int tilewidth;
+extern int tileheight;
+
 static bool player_is_colliding(struct player* p, float newx, float newy) {
 	assert(p->map != NULL);
 
 	// Get the tile coordinate of the top-left corner of the player's bounds.
-	int tilex1 = floorf(newx / TILE_SIZE);
-	int tiley1 = floorf(newy / TILE_SIZE);
+	int tilex1 = floorf(newx / tilewidth);
+	int tiley1 = floorf(newy / tileheight);
 
 	// Get the tile coordinate of the bottom-right corner of the player's bounds.
-	int tilex2 = floorf((newx + p->w) / TILE_SIZE);
-	int tiley2 = floorf((newy + p->h) / TILE_SIZE);
+	int tilex2 = floorf((newx + p->w) / tilewidth);
+	int tiley2 = floorf((newy + p->h) / tilewidth);
 
-#if 0
+#ifndef NDEBUG
 	printf("%s:%d %s()\n", __FILE__, __LINE__, __func__);
 	printf("\tPlayer new position will be: (%3.0f,%3.0f)\n", newx, newy);
 	printf("\tOccupied tiles: (%2d,%2d)-(%2d,%2d)\n", tilex1, tiley1, tilex2, tiley2);
@@ -118,7 +124,9 @@ void player_update(struct player* p, float delta_time) {
 
 	if (p->boop_life > 0) {
 		p->boop_life -= (delta_time * 1000.0f);
+		p->scale += 1.0f * delta_time;
 	} else {
+		p->scale = 1.0f;
 		p->boop_life = 0;
 	}
 
@@ -169,9 +177,12 @@ void player_draw(struct player* p, SDL_Renderer* r) {
 	};
 
 	if (p->boop_life > 0) {
-		SDL_SetRenderDrawColor(r, 255, 255, 255, p->boop_life);
-		SDL_Rect boop = { p->bx, p->by, 10, 10 };
-		SDL_RenderFillRect(r, &boop);
+		float scale = p->scale;
+		SDL_RenderSetScale(r, scale, scale);
+		SDL_SetTextureAlphaMod(p->font->texture, p->boop_life);
+		bitmapfont_renderf(p->font, p->bx / scale, p->by / scale, "Boop!!!");
+		SDL_SetTextureAlphaMod(p->font->texture, 0xff);
+		SDL_RenderSetScale(r, 1.0f, 1.0f);
 	}
 
 	SDL_SetRenderDrawColor(r, 200, 200, 200, 155);

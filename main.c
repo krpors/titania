@@ -19,7 +19,11 @@ static SDL_Renderer* gRenderer = NULL;
 static SDL_Window* gWindow = NULL;
 static bool quit = false;
 static bool pause = false;
+static bool drawgrid = false;
 static struct player p;
+
+int tilewidth = 64;
+int tileheight = 64;
 
 struct spritesheet {
 	int width;  // width of the spritesheet
@@ -67,33 +71,49 @@ void rendersprite(const struct spritesheet* ss, SDL_Renderer* renderer) {
 }
 
 void rendertilemap(const struct tilemap* m, SDL_Renderer* r) {
-	int tw = TILE_SIZE;
+	int tw = tilewidth;
+	int th = tileheight;
 	for(int y = 0; y < m->h; y++) {
 		for (int x = 0; x < m->w; x++) {
 			int bleh = tilemap_get(m, x, y);
+			SDL_Rect src;
+			SDL_SetTextureAlphaMod(m->sheet->texture, 255);
 			if (bleh == TILE_MAP_EDGE) {
-				SDL_SetRenderDrawColor(gRenderer, 255, 0, 0, 255);
+				src.x = 32;
+				src.y = 0;
+				src.w = 32;
+				src.h = 32;
 			} else if (bleh == 0xaa) {
-				SDL_SetRenderDrawColor(gRenderer, 255, 255, 0, 255);
+				src.x = 64;
+				src.y = 0;
+				src.w = 32;
+				src.h = 32;
 			} else if (bleh == TILE_NONE) {
-				SDL_SetRenderDrawColor(gRenderer, 0, 0, 0, 0);
+				SDL_SetTextureAlphaMod(m->sheet->texture, 90);
+				src.x = 160;
+				src.y = 64;
+				src.w = 32;
+				src.h = 32;
 			}
 
-			SDL_Rect rect = { x * tw, y * tw, tw, tw };
-			SDL_RenderFillRect(r, &rect);
+			SDL_Rect rect = { x * tw, y * th, th, th };
+			SDL_RenderCopy(r, m->sheet->texture, &src, &rect);
 
 		}
 	}
 }
 
 void draw_grid(SDL_Renderer* r) {
-	int w = 64;
-	SDL_SetRenderDrawColor(r, 0, 255, 0, 55);
-	for (int x = 0; x < 800; x += w) {
-		SDL_RenderDrawLine(r, x + w, 0, x + w, 600);
-	}
-	for (int y = 0; y < 600; y += w) {
-		SDL_RenderDrawLine(r, 0, y + w, 800, y + w);
+	if (drawgrid) {
+		int w = tilewidth;
+		int h = tileheight;
+		SDL_SetRenderDrawColor(r, 0, 255, 0, 55);
+		for (int x = 0; x < 800; x += w) {
+			SDL_RenderDrawLine(r, x + w, 0, x + w, 600);
+		}
+		for (int y = 0; y < 600; y += h) {
+			SDL_RenderDrawLine(r, 0, y + h, 800, y + h);
+		}
 	}
 }
 
@@ -102,18 +122,17 @@ void handle_keypress(const SDL_Event* event) {
 		return;
 	}
 
-	switch (event->key.keysym.sym) {
-	case SDLK_f:
-		SDL_SetWindowFullscreen(gWindow, SDL_WINDOW_FULLSCREEN);
-		break;
-	case SDLK_ESCAPE:
-		quit = true;
-		break;
-	case SDLK_SPACE:
-		if (event->key.type == SDL_KEYDOWN) {
-			pause = !pause;
+	if (event->type == SDL_KEYDOWN) {
+		switch (event->key.keysym.sym) {
+		case SDLK_d: drawgrid = !drawgrid; break;
+		case SDLK_f: SDL_SetWindowFullscreen(gWindow, SDL_WINDOW_FULLSCREEN); break;
+		case SDLK_ESCAPE: quit = true; break;
+		case SDLK_SPACE:
+			if (event->key.type == SDL_KEYDOWN) {
+				pause = !pause;
+			}
+			break;
 		}
-		break;
 	}
 }
 
@@ -144,15 +163,24 @@ int main(int argc, char* argv[]) {
 		exit(1);
 	}
 
+	tilewidth = ceilf(800.0 / 12.0);
+	tileheight = ceilf(600.0 / 9.0);
+
 	gRenderer = SDL_CreateRenderer(gWindow, -1, SDL_RENDERER_ACCELERATED);
 	SDL_SetRenderDrawBlendMode(gRenderer, SDL_BLENDMODE_BLEND);
 	SDL_SetRenderDrawColor(gRenderer, 0, 0, 0, 0);
+
+	struct spritesheet sheet;
+	if (!spritesheet_init(&sheet, "/home/krpors/Development/pixelart.png")) {
+		exit(1);
+	}
 
 	struct tilemap tm;
 	if (!tilemap_read(&tm, "tilemap.txt")) {
 		tilemap_free(&tm);
 		exit(1);
 	}
+	tm.sheet = &sheet;
 
 	player_init(&p);
 	p.map = &tm;
@@ -162,6 +190,8 @@ int main(int argc, char* argv[]) {
 	if (!bitmapfont_init(&bmf, gRenderer, "font.png", glyphs)) {
 		exit(1);
 	}
+
+	p.font = &bmf;
 
 	SDL_Event e;
 
@@ -204,6 +234,7 @@ int main(int argc, char* argv[]) {
 		deltaTime = SDL_GetTicks();
 
 		SDL_RenderPresent(gRenderer);
+
 	}
 
 	bitmapfont_free(&bmf);

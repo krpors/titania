@@ -18,6 +18,8 @@ struct tilemap {
 	int len;
 	int w;
 	int h;
+
+	struct spritesheet* sheet;
 };
 
 void tilemap_init(struct tilemap* m);

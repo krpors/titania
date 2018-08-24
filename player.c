@@ -30,8 +30,10 @@ void player_right(struct player* p) {
 	p->right = true;
 }
 
-void player_up(struct player* p) {
-	p->jumping = true;
+void player_jump(struct player* p) {
+	if (p->can_jump) {
+		p->jumping = true;
+	}
 }
 
 void player_down(struct player* p) {
@@ -59,7 +61,7 @@ static bool player_is_colliding(struct player* p, float newx, float newy) {
 	int tilex2 = floorf((newx + p->w) / tilewidth);
 	int tiley2 = floorf((newy + p->h) / tilewidth);
 
-#ifndef NDEBUG
+#if 0
 	printf("%s:%d %s()\n", __FILE__, __LINE__, __func__);
 	printf("\tPlayer new position will be: (%3.0f,%3.0f)\n", newx, newy);
 	printf("\tOccupied tiles: (%2d,%2d)-(%2d,%2d)\n", tilex1, tiley1, tilex2, tiley2);
@@ -104,9 +106,20 @@ void player_update(struct player* p, float delta_time) {
 	}
 
 	if (p->jumping && p->can_jump) {
+		// If we pressed the jump button, and we can actually jump (i.e.
+		// we are touching the ground), set our velocity to negative so
+		// we actually up.
+		p->dy += -820.0f;
 		p->can_jump = false;
-		p->dy = -PLAYER_MAX_DY;
 	}
+
+	if (!p->jumping && p->dy < -200.0f) {
+		// If we prematurely released the jump button, stop
+		// accelerating upwards so we can control the height
+		// of our jumps.
+		p->dy = 0.0f;
+	}
+
 
 	// If we are moving left, or right, and if we are NOT colliding
 	// based on the new x position (but the same y position - this is
@@ -117,10 +130,10 @@ void player_update(struct player* p, float delta_time) {
 		}
 	}
 
+	// Always apply some force downwards. Does not matter when we are
+	// jumping, or falling, or standing still...
 	p->dy += GRAVITY * delta_time;
 	newy += p->dy * delta_time;
-
-	bool colliding = player_is_colliding(p, p->x, newy);
 
 	if (p->boop_life > 0) {
 		p->boop_life -= (delta_time * 1000.0f);
@@ -130,12 +143,14 @@ void player_update(struct player* p, float delta_time) {
 		p->boop_life = 0;
 	}
 
+	bool colliding = player_is_colliding(p, p->x, newy);
 	if (colliding) {
 		if (p->dy < 0.0f) {
 			// Collision with the ceiling, since our dy is negative.
 			printf("Collided with the ceiling\n");
 			p->bx = p->x + (p->w / 4);
 			p->by = p->y - (p->h / 4);
+			p->jumping = false;
 			p->boop_life = 255;
 		} else if (p->dy >= 0.0f) {
 			// Collision with the ground, we can jump again.
@@ -146,6 +161,8 @@ void player_update(struct player* p, float delta_time) {
 		// reset our y velocity to 0.
 		p->dy = 0.0f;
 	} else {
+		// We are not colliding with anything over the y-axis,
+		// so update our actual position to the new y coordinate.
 		p->y = newy;
 	}
 }
@@ -153,16 +170,16 @@ void player_update(struct player* p, float delta_time) {
 void player_handle_event(struct player* p, const SDL_Event* event) {
 	if (event->type == SDL_KEYDOWN && event->key.repeat == 0) {
 		switch (event->key.keysym.sym) {
-		case SDLK_UP    : player_up(p)    ; break ;
+		case SDLK_UP    : player_jump(p)    ; break ;
 		case SDLK_RIGHT : player_right(p) ; break ;
 		case SDLK_DOWN  : player_down(p)  ; break ;
 		case SDLK_LEFT  : player_left(p)  ; break ;
 		}
 	} else if (event->type == SDL_KEYUP && event->key.repeat == 0) {
 		switch (event->key.keysym.sym) {
-		case SDLK_UP    : // fallthrough
-		case SDLK_RIGHT : //     v
-		case SDLK_DOWN  : //     v
+		case SDLK_UP    : p->jumping = false; break;
+		case SDLK_RIGHT : // fallthrough
+		case SDLK_DOWN  : // fallthrough
 		case SDLK_LEFT  : player_stop(p); break;
 		}
 	}

@@ -4,12 +4,12 @@
 #include <stdbool.h>
 #include <SDL.h>
 
-static const float PLAYER_MIN_DX = 250.0f;
-static const float PLAYER_MAX_DX = 380.0f;
+static const float PLAYER_MIN_DX = 350.0f;
+static const float PLAYER_MAX_DX = 480.0f;
 
 static const float PLAYER_MAX_DY = 600.0f;
 
-static const float GRAVITY = 1250.0f;
+static const float GRAVITY = 2250.0f;
 
 struct player {
 	struct tilemap* map;
@@ -38,7 +38,7 @@ struct player {
 void player_init(struct player* p);
 void player_left(struct player* p);
 void player_right(struct player* p);
-void player_up(struct player* p);
+void player_jump(struct player* p);
 void player_down(struct player* p);
 void player_stop(struct player* p);
 

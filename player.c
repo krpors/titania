@@ -156,6 +156,9 @@ void player_update(struct player* p, float delta_time) {
 			// Collision with the ground, we can jump again.
 			p->jumping = false;
 			p->can_jump = true;
+			if (p->dy > 1000.0f) {
+				printf("Ouch!\n");
+			}
 		}
 		// Whether we collided with the ceiling or the bottom,
 		// reset our y velocity to 0.

@@ -1,9 +1,16 @@
 CFLAGS =  -std=gnu99 -ggdb -Wall -Wextra -pedantic -O3 -MMD -MP
 CFLAGS += $(shell pkg-config --cflags sdl2)
-LDLIBS =  $(shell pkg-config --libs sdl2)
-LDLIBS =  $(shell pkg-config --libs SDL2_image)
+CFLAGS += $(shell pkg-config --cflags libxml-2.0)
+
+LDLIBS =   $(shell pkg-config --libs sdl2)
+LDLIBS +=  $(shell pkg-config --libs SDL2_image)
+LDLIBS +=  $(shell pkg-config --libs libxml-2.0)
 LDLIBS += -lm # for math
-objects = main.o tilemap.o player.o bitmapfont.o util.o
+
+sources =  $(wildcard *.c)
+sources += $(wildcard ./tmx/*.c)
+
+objects = $(patsubst %.c,%.o,$(sources))
 
 all: main
 main: $(objects)

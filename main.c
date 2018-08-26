@@ -1,6 +1,7 @@
 #include "tilemap.h"
 #include "player.h"
 #include "bitmapfont.h"
+#include "tmx/tmx.h"
 
 #include <assert.h>
 #include <math.h>
@@ -77,23 +78,40 @@ void rendertilemap(const struct tilemap* m, SDL_Renderer* r) {
 		for (int x = 0; x < m->w; x++) {
 			int bleh = tilemap_get(m, x, y);
 			SDL_Rect src;
+			src.w = 32;
+			src.h = 32;
 			SDL_SetTextureAlphaMod(m->sheet->texture, 255);
 			if (bleh == TILE_MAP_EDGE) {
 				src.x = 32;
 				src.y = 0;
-				src.w = 32;
-				src.h = 32;
 			} else if (bleh == 0xaa) {
 				src.x = 64;
 				src.y = 0;
-				src.w = 32;
-				src.h = 32;
 			} else if (bleh == TILE_NONE) {
 				SDL_SetTextureAlphaMod(m->sheet->texture, 90);
 				src.x = 160;
 				src.y = 64;
-				src.w = 32;
-				src.h = 32;
+			} else if (bleh == TILE_ROCK_2) {
+				src.x = 256;
+				src.y = 0;
+			} else if (bleh == TILE_ROCK_3) {
+				src.x = 192;
+				src.y = 32;
+			} else if (bleh == TILE_ROCK_5) {
+				src.x = 256;
+				src.y = 32;
+			} else if (bleh == TILE_ROCK_6) {
+				src.x = 192;
+				src.y = 64;
+			} else if (bleh == TILE_ROCK_7) {
+				src.x = 224;
+				src.y = 64;
+			} else if (bleh == TILE_ROCK_8) {
+				src.x = 256;
+				src.y = 64;
+			} else {
+				src.x = 0;
+				src.y = 0;
 			}
 
 			SDL_Rect rect = { x * tw, y * th, th, th };
@@ -140,6 +158,12 @@ int main(int argc, char* argv[]) {
 	(void)(argc);
 	(void)(argv);
 
+	tmx_map* map = tmx_load("map01.tmx");
+	if (map == NULL) {
+		tmx_perror("tmx_load");
+	}
+	tmx_map_free(map);
+
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
 		fprintf(stderr, "Cannot init SDL: %s\n", SDL_GetError());
 		exit(1);
@@ -171,7 +195,7 @@ int main(int argc, char* argv[]) {
 	SDL_SetRenderDrawColor(gRenderer, 0, 0, 0, 0);
 
 	struct spritesheet sheet;
-	if (!spritesheet_init(&sheet, "/home/krpors/Development/pixelart.png")) {
+	if (!spritesheet_init(&sheet, "sheet.png")) {
 		exit(1);
 	}
 

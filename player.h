@@ -1,15 +1,18 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
+#include "util.h"
+
 #include <stdbool.h>
 #include <SDL.h>
 
 static const float PLAYER_MIN_DX = 350.0f;
 static const float PLAYER_MAX_DX = 480.0f;
 
+static const float PLAYER_JUMP_VEL = 1000.0f;
 static const float PLAYER_MAX_DY = 600.0f;
 
-static const float GRAVITY = 2250.0f;
+static const float GRAVITY = 3000.0f;
 
 struct player {
 	struct tilemap* map;

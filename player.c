@@ -105,11 +105,11 @@ void player_update(struct player* p, float delta_time) {
 		newx += p->dx * delta_time;
 	}
 
-	if (p->jumping && p->can_jump) {
+	if (p->jumping && p->can_jump && p->dy <= 0.0f) {
 		// If we pressed the jump button, and we can actually jump (i.e.
 		// we are touching the ground), set our velocity to negative so
-		// we actually up.
-		p->dy += -820.0f;
+		// we actually up. We also check our dy to see if we are not falling.
+		p->dy += -PLAYER_JUMP_VEL;
 		p->can_jump = false;
 	}
 
@@ -134,6 +134,8 @@ void player_update(struct player* p, float delta_time) {
 	// jumping, or falling, or standing still...
 	p->dy += GRAVITY * delta_time;
 	newy += p->dy * delta_time;
+
+	//printf("Probable new y: %f\n", newy);
 
 	if (p->boop_life > 0) {
 		p->boop_life -= (delta_time * 1000.0f);
@@ -173,7 +175,7 @@ void player_update(struct player* p, float delta_time) {
 void player_handle_event(struct player* p, const SDL_Event* event) {
 	if (event->type == SDL_KEYDOWN && event->key.repeat == 0) {
 		switch (event->key.keysym.sym) {
-		case SDLK_UP    : player_jump(p)    ; break ;
+		case SDLK_UP    : player_jump(p)  ; break ;
 		case SDLK_RIGHT : player_right(p) ; break ;
 		case SDLK_DOWN  : player_down(p)  ; break ;
 		case SDLK_LEFT  : player_left(p)  ; break ;

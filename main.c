@@ -221,6 +221,8 @@ int main(int argc, char* argv[]) {
 
 	float deltaTime = 0.0f;
 
+	uint32_t timeBefore = 0;
+	uint32_t timeAfter = 0;
 	while (!quit) {
 
 		while (SDL_PollEvent(&e) != 0) {
@@ -239,12 +241,15 @@ int main(int argc, char* argv[]) {
 			continue;
 		}
 
-		float timeStep = (SDL_GetTicks() - deltaTime) / 1000.0f;
+		// Update logic
+		deltaTime = (timeAfter- timeBefore) / 1000.0f;
+		player_update(&p, deltaTime);
 
+		timeBefore = SDL_GetTicks();
+
+		// Render logic
 		SDL_SetRenderDrawColor(gRenderer, 0, 0, 0, 0);
 		SDL_RenderClear(gRenderer);
-
-		player_update(&p, timeStep);
 
 		rendertilemap(&tm, gRenderer);
 		player_draw(&p, gRenderer);
@@ -254,8 +259,9 @@ int main(int argc, char* argv[]) {
 		bitmapfont_renderf(&bmf, 0, 1 * 14, "  jumping: %d", p.jumping);
 		bitmapfont_renderf(&bmf, 0, 2 * 14, "  can jump: %d", p.can_jump);
 		bitmapfont_renderf(&bmf, 0, 3 * 14, "  boop_life: %-3d", p.boop_life);
+		bitmapfont_renderf(&bmf, 0, 4 * 14, "  time step: %-8f", deltaTime);
 
-		deltaTime = SDL_GetTicks();
+		timeAfter = SDL_GetTicks();
 
 		SDL_RenderPresent(gRenderer);
 

@@ -21,6 +21,7 @@ static SDL_Window* gWindow = NULL;
 static bool quit = false;
 static bool pause = false;
 static bool drawgrid = false;
+static bool drawdebug = false;
 static struct player p;
 
 int tilewidth = 64;
@@ -143,6 +144,7 @@ void handle_keypress(const SDL_Event* event) {
 	if (event->type == SDL_KEYDOWN) {
 		switch (event->key.keysym.sym) {
 		case SDLK_d: drawgrid = !drawgrid; break;
+		case SDLK_p: drawdebug = !drawdebug; break;
 		case SDLK_f: SDL_SetWindowFullscreen(gWindow, SDL_WINDOW_FULLSCREEN); break;
 		case SDLK_ESCAPE: quit = true; break;
 		case SDLK_SPACE:
@@ -190,7 +192,7 @@ int main(int argc, char* argv[]) {
 	tilewidth = ceilf(800.0 / 12.0);
 	tileheight = ceilf(600.0 / 9.0);
 
-	gRenderer = SDL_CreateRenderer(gWindow, -1, SDL_RENDERER_ACCELERATED);
+	gRenderer = SDL_CreateRenderer(gWindow, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 	SDL_SetRenderDrawBlendMode(gRenderer, SDL_BLENDMODE_BLEND);
 	SDL_SetRenderDrawColor(gRenderer, 0, 0, 0, 0);
 
@@ -221,6 +223,8 @@ int main(int argc, char* argv[]) {
 
 	float deltaTime = 0.0f;
 
+	uint32_t fps_timer = SDL_GetTicks();
+	long total_frames = 0;
 	uint32_t timeBefore = 0;
 	uint32_t timeAfter = 0;
 	while (!quit) {
@@ -241,11 +245,15 @@ int main(int argc, char* argv[]) {
 			continue;
 		}
 
+		float secondspassed = (SDL_GetTicks() - fps_timer) / 1000.0f;
+		float fps = total_frames / secondspassed;
+
 		// Update logic
-		deltaTime = (timeAfter- timeBefore) / 1000.0f;
+		deltaTime = (timeAfter - timeBefore) / 1000.0f;
+		timeBefore = SDL_GetTicks();
+
 		player_update(&p, deltaTime);
 
-		timeBefore = SDL_GetTicks();
 
 		// Render logic
 		SDL_SetRenderDrawColor(gRenderer, 0, 0, 0, 0);
@@ -255,16 +263,21 @@ int main(int argc, char* argv[]) {
 		player_draw(&p, gRenderer);
 		draw_grid(gRenderer);
 
-		bitmapfont_renderf(&bmf, 0, 0 * 14, "P(%3.0f, %3.0f), vx: %f, dy: %f", p.x, p.y, p.dx, p.dy);
-		bitmapfont_renderf(&bmf, 0, 1 * 14, "  jumping: %d", p.jumping);
-		bitmapfont_renderf(&bmf, 0, 2 * 14, "  can jump: %d", p.can_jump);
-		bitmapfont_renderf(&bmf, 0, 3 * 14, "  boop_life: %-3d", p.boop_life);
-		bitmapfont_renderf(&bmf, 0, 4 * 14, "  time step: %-8f", deltaTime);
-
-		timeAfter = SDL_GetTicks();
+		if (drawdebug) {
+			bitmapfont_renderf(&bmf, 0, 0 * 14, "P(%3.0f, %3.0f), vx: %f, dy: %f", p.x, p.y, p.dx, p.dy);
+			bitmapfont_renderf(&bmf, 0, 1 * 14, "  jumping: %d", p.jumping);
+			bitmapfont_renderf(&bmf, 0, 2 * 14, "  can jump: %d", p.can_jump);
+			bitmapfont_renderf(&bmf, 0, 3 * 14, "  boop_life: %-3d", p.boop_life);
+			// spacing
+			bitmapfont_renderf(&bmf, 0, 5 * 14, "Delta time: %-3f", deltaTime);
+			bitmapfont_renderf(&bmf, 0, 6 * 14, "FPS: %-3f", fps);
+		}
 
 		SDL_RenderPresent(gRenderer);
 
+		timeAfter = SDL_GetTicks();
+
+		total_frames++;
 	}
 
 	bitmapfont_free(&bmf);

@@ -138,7 +138,7 @@ void player_update(struct player* p, float delta_time) {
 	//printf("Probable new y: %f\n", newy);
 
 	if (p->boop_life > 0) {
-		p->boop_life -= (delta_time * 1000.0f);
+		p->boop_life -= (delta_time * 500.0f);
 		p->scale += 1.0f * delta_time;
 	} else {
 		p->scale = 1.0f;

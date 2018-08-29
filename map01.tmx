@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <map version="1.0" tiledversion="1.1.6" orientation="orthogonal" renderorder="left-up" width="12" height="9" tilewidth="32" tileheight="32" infinite="0" nextobjectid="8">
- <tileset firstgid="1" name="Yo" tilewidth="32" tileheight="32" tilecount="80" columns="10">
+ <tileset firstgid="1" name="Tileset" tilewidth="32" tileheight="32" tilecount="80" columns="10">
   <image source="../../pixelart.png" width="320" height="256"/>
  </tileset>
  <layer name="Collision map" width="12" height="9">
@@ -16,7 +16,7 @@
 1,1,0,0,0,1,1,0,0,0,0,0,
 1,1,0,1,1,0,0,0,1,0,0,1,
 0,0,0,0,0,0,0,1,1,1,0,1,
-1,1,1,1,1,1,1,1,1,1,1,1
+1,1,1,1,1,1,1,1,1,1,0,1
 </data>
  </layer>
  <layer name="Map" width="12" height="9">
@@ -28,8 +28,21 @@
 17,19,0,57,0,58,59,27,28,29,0,27,
 17,19,0,0,0,48,50,0,58,0,0,0,
 27,29,0,48,50,0,0,59,37,59,0,7,
-59,58,59,58,0,58,59,7,39,9,59,17,
-8,8,8,8,8,8,8,40,18,38,8,40
+59,58,59,58,0,58,59,7,39,9,0,17,
+8,8,8,8,8,8,8,40,18,19,0,17
+</data>
+ </layer>
+ <layer name="Tile Layer 3" width="12" height="9" opacity="0.46">
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,37,0,0,0,0,0,0,
+0,0,0,0,0,47,0,0,0,0,0,0,
+0,0,0,0,0,47,0,0,0,0,0,0,
+0,0,0,0,0,47,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
 </map>

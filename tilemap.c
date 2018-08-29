@@ -29,6 +29,7 @@ static void draw_all_layers(SDL_Renderer* r, const tmx_map* map) {
 			// if non-null, it contains our collision property, marking it as a
 			// collidable layer. Do not draw, but use it for the physics part.
 
+			uint8_t opacity = layer->opacity * 255;
 			uintmax_t gid;
 			for (uintmax_t i = 0; i < map->height; i++) {
 				for (uintmax_t j = 0; j < map->width; j++) {
@@ -51,6 +52,7 @@ static void draw_all_layers(SDL_Renderer* r, const tmx_map* map) {
 					dst_rect.w = tilewidth;
 					dst_rect.h = tileheight;
 
+					SDL_SetTextureAlphaMod(tileset_texture, opacity);
 					SDL_RenderCopy(r, tileset_texture, &src_rect, &dst_rect);
 				}
 
@@ -102,14 +104,12 @@ void tilemap_free(struct tilemap* tm) {
 	// TODO: free resource_image from tmx_tileset/tmx_image.
 }
 
-int tilemap_tileat(struct tilemap* tm, uintmax_t x, uintmax_t y) {
-	if (x < 0 || x > tm->map->width || y < 0 || y > tm->map->height) {
+int tilemap_tileat(struct tilemap* tm, int x, int y) {
+	if (x < 0 || x >= (int)tm->map->width || y < 0 || y >= (int)tm->map->height) {
 		return 1;
 	}
 
 	tmx_map* map = tm->map;
-
-
 
 	uintmax_t gid;
 	int idx = y * map->width + x;

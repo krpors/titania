@@ -22,7 +22,7 @@ struct tilemap {
 
 bool tilemap_load(struct tilemap* tm, const char* path);
 void tilemap_free(struct tilemap* tm);
-int tilemap_tileat(struct tilemap* tm, uintmax_t x, uintmax_t y);
+int tilemap_tileat(struct tilemap* tm, int x, int y);
 void tilemap_draw(struct tilemap* tm, SDL_Renderer* r);
 
 #endif // TILEMAP_H

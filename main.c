@@ -27,101 +27,6 @@ static struct player p;
 int tilewidth = 64;
 int tileheight = 64;
 
-struct spritesheet {
-	int width;  // width of the spritesheet
-	int height; // height of the spritesheet
-	int sz;     // size of each sprite in the sheet.
-
-	SDL_Texture* texture;
-};
-
-bool spritesheet_init(struct spritesheet* ss, const char* path) {
-	assert(ss != NULL);
-	assert(path != NULL);
-	assert(gRenderer != NULL);
-
-	SDL_Surface* surface = IMG_Load(path);
-	if (surface == NULL) {
-		fprintf(stderr, "Unable to load surface from path '%s': %s\n", path, SDL_GetError());
-		return false;
-	}
-
-	ss->sz     = 32;
-	ss->width  = surface->w;
-	ss->height = surface->h;
-
-	ss->texture = SDL_CreateTextureFromSurface(gRenderer, surface);
-	if (ss->texture == NULL) {
-		fprintf(stderr, "Unable to create texture from path '%s': %s\n", path, SDL_GetError());
-		SDL_FreeSurface(surface);
-		return false;
-	}
-
-	SDL_FreeSurface(surface);
-
-	return true;
-}
-
-void spritesheet_free(struct spritesheet* ss) {
-	SDL_DestroyTexture(ss->texture);
-}
-
-void rendersprite(const struct spritesheet* ss, SDL_Renderer* renderer) {
-	SDL_Rect src = { .x = 32, .y = 0,  .w = ss->sz, .h = ss->sz };
-	SDL_Rect dst = { .x = 82, .y = 80, .w = ss->sz, .h = ss->sz };
-	SDL_RenderCopy(renderer, ss->texture,  &src, &dst);
-}
-
-void rendertilemap(const struct tilemap* m, SDL_Renderer* r) {
-	int tw = tilewidth;
-	int th = tileheight;
-	for(int y = 0; y < m->h; y++) {
-		for (int x = 0; x < m->w; x++) {
-			int bleh = tilemap_get(m, x, y);
-			SDL_Rect src;
-			src.w = 32;
-			src.h = 32;
-			SDL_SetTextureAlphaMod(m->sheet->texture, 255);
-			if (bleh == TILE_MAP_EDGE) {
-				src.x = 32;
-				src.y = 0;
-			} else if (bleh == 0xaa) {
-				src.x = 64;
-				src.y = 0;
-			} else if (bleh == TILE_NONE) {
-				SDL_SetTextureAlphaMod(m->sheet->texture, 90);
-				src.x = 160;
-				src.y = 64;
-			} else if (bleh == TILE_ROCK_2) {
-				src.x = 256;
-				src.y = 0;
-			} else if (bleh == TILE_ROCK_3) {
-				src.x = 192;
-				src.y = 32;
-			} else if (bleh == TILE_ROCK_5) {
-				src.x = 256;
-				src.y = 32;
-			} else if (bleh == TILE_ROCK_6) {
-				src.x = 192;
-				src.y = 64;
-			} else if (bleh == TILE_ROCK_7) {
-				src.x = 224;
-				src.y = 64;
-			} else if (bleh == TILE_ROCK_8) {
-				src.x = 256;
-				src.y = 64;
-			} else {
-				src.x = 0;
-				src.y = 0;
-			}
-
-			SDL_Rect rect = { x * tw, y * th, th, th };
-			SDL_RenderCopy(r, m->sheet->texture, &src, &rect);
-
-		}
-	}
-}
-
 void draw_grid(SDL_Renderer* r) {
 	if (drawgrid) {
 		int w = tilewidth;
@@ -154,6 +59,10 @@ void handle_keypress(const SDL_Event* event) {
 			break;
 		}
 	}
+}
+
+void* sdl_img_loader(const char *path) {
+	return IMG_LoadTexture(gRenderer, path);
 }
 
 int main(int argc, char* argv[]) {
@@ -196,17 +105,14 @@ int main(int argc, char* argv[]) {
 	SDL_SetRenderDrawBlendMode(gRenderer, SDL_BLENDMODE_BLEND);
 	SDL_SetRenderDrawColor(gRenderer, 0, 0, 0, 0);
 
-	struct spritesheet sheet;
-	if (!spritesheet_init(&sheet, "sheet.png")) {
-		exit(1);
-	}
+	tmx_img_load_func = (void* (*)(const char*))sdl_img_loader;
+	tmx_img_free_func = (void (*)(void*)) SDL_DestroyTexture;
 
 	struct tilemap tm;
-	if (!tilemap_read(&tm, "tilemap.txt")) {
+	if (!tilemap_load(&tm, "map01.tmx")) {
 		tilemap_free(&tm);
 		exit(1);
 	}
-	tm.sheet = &sheet;
 
 	player_init(&p);
 	p.map = &tm;
@@ -259,8 +165,8 @@ int main(int argc, char* argv[]) {
 		SDL_SetRenderDrawColor(gRenderer, 0, 0, 0, 0);
 		SDL_RenderClear(gRenderer);
 
-		rendertilemap(&tm, gRenderer);
 		player_draw(&p, gRenderer);
+		tilemap_draw(&tm, gRenderer);
 		draw_grid(gRenderer);
 
 		if (drawdebug) {

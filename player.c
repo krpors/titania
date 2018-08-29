@@ -71,8 +71,9 @@ static bool player_is_colliding(struct player* p, float newx, float newy) {
 	// whether the tile is collidable.
 	for (int x = tilex1; x <= tilex2; x++) {
 		for (int y = tiley1; y <= tiley2; y++) {
-			int tile = tilemap_get(p->map, x, y);
-			if (tile > TILE_NONE) {
+			//int tile = tilemap_get(p->map, x, y);
+			int tile = tilemap_tileat(p->map, x, y);
+			if (tile >= 1) {
 				return true;
 			}
 		}

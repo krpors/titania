@@ -1,5 +1,6 @@
 CFLAGS =  -std=gnu99 -ggdb -Wall -Wextra -pedantic -O3 -MMD -MP
 CFLAGS += $(shell pkg-config --cflags sdl2)
+CFLAGS += $(shell pkg-config --cflags SDL2_image)
 CFLAGS += $(shell pkg-config --cflags libxml-2.0)
 
 LDLIBS =   $(shell pkg-config --libs sdl2)

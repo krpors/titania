@@ -1,4 +1,5 @@
 #include "tilemap.h"
+#include "tmx/tmx.h"
 
 #include <assert.h>
 #include <ctype.h>
@@ -7,103 +8,117 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-bool tilemap_read(struct tilemap* map, const char* path) {
-	map->tiles = calloc(1, sizeof(int));
-	map->len = 0;
-	map->w = 0;
-	map->h = 0;
+#include <SDL_image.h>
 
-	FILE* f = fopen(path, "r");
-	if (f == NULL) {
-		perror(path);
-	}
+extern int tilewidth;
+extern int tileheight;
 
-	char buf[3] = { 0 }; // This buffer will be filled with each read hex digit.
-	int  bi = 0;         // The buffer index (to appoint char in buf)
+static void draw_all_layers(SDL_Renderer* r, const tmx_map* map) {
+	tmx_layer* layer = map->ly_head;
+	int layer_num = 0;
 
-	int maxcols = -1; // Maximum columns detected. -1 is the base, default.
-	int cols = 0;     // The amount of columns detected.
-	int rows = 0;     // The amount of rows.
+	tmx_tileset* tileset = NULL;
 
-	int r;
-	while (r = fgetc(f), r != EOF) {
-		// When we discover a newline, we hit the end of the row.
-		// Reset some indicators and make us ready to parse a new row.
-		if (r == '\n') {
-			// First iteration of columns. This row contains the
-			// expected amount of columns. If the following amount
-			// do not match up, write an error and bail out.
-			if (maxcols == -1) {
-				maxcols = cols;
-			} else if (maxcols != cols) {
-				fprintf(stderr,
-					"warning: inconsistent colums detected "
-					"(expected %d, got %d) at (%d,%d)\n", maxcols, cols, rows, cols);
-				fclose(f);
-				return false;
+	SDL_Texture* tileset_texture = NULL;
+	SDL_Rect src_rect; // source rectangle for the texture
+	SDL_Rect dst_rect; // target rectangle, where the place the src_rect.
+
+	while (layer) {
+		tmx_property* property = tmx_get_property(layer->properties, "collision");
+		if (property == NULL) {
+			// if non-null, it contains our collision property, marking it as a
+			// collidable layer. Do not draw, but use it for the physics part.
+
+			uintmax_t gid;
+			for (uintmax_t i = 0; i < map->height; i++) {
+				for (uintmax_t j = 0; j < map->width; j++) {
+					int idx = i * map->width + j;
+					gid = layer->content.gids[idx];
+					if (map->tiles[gid] == NULL) {
+						continue;
+					}
+
+					tileset = map->tiles[gid]->tileset;
+					tileset_texture = tileset->image->resource_image;
+
+					src_rect.x = map->tiles[gid]->ul_x;
+					src_rect.y = map->tiles[gid]->ul_y;
+					src_rect.w = tileset->tile_width;
+					src_rect.h = tileset->tile_height;
+
+					dst_rect.x = j * tilewidth;
+					dst_rect.y = i * tileheight;
+					dst_rect.w = tilewidth;
+					dst_rect.h = tileheight;
+
+					SDL_RenderCopy(r, tileset_texture, &src_rect, &dst_rect);
+				}
+
 			}
-
-			rows++;
-			bi = 0;
-			cols = 0;
 		}
 
-		// If we hit a space, it's a separator of a column.
-		if (r == ' ') {
-			bi = 0;
-		}
-
-		// Check if the read char is a hexadecimal digit, and
-		// if so, append it to the buffer.
-		if (isxdigit(r)) {
-			buf[bi++] = r;
-		} else {
-			// TODO: this
-			//fprintf(stderr, "error: %c is not
-		}
-
-		// if we read two bytes, (e.g. aa, fa, 09, 18), convert the buffer
-		// contents to an integer, and add it to the map.
-		if (bi == 2) {
-			int cruft = strtol(buf, NULL, 16);
-			tilemap_add(map, cruft);
-			cols++;
-		}
-
-		if (bi > 2) {
-			fprintf(stderr, "warning: expecting single byte\n");
-			return false;
-		}
+		layer = layer->next;
+		layer_num++;
 	}
-	fclose(f);
+}
 
-	map->w = maxcols;
-	map->h = rows;
+static tmx_layer* find_collision_layer(const tmx_map* map) {
+	tmx_layer* layer = map->ly_head;
+
+	while (layer) {
+		tmx_property* property = tmx_get_property(layer->properties, "collision");
+		if (property != NULL) {
+			return layer;
+		}
+		layer = layer->next;
+	}
+
+	return NULL;
+}
+
+
+bool tilemap_load(struct tilemap* tm, const char* path) {
+	tm->map = tmx_load(path);
+	if (tm->map == NULL) {
+		tmx_perror("tmx_load");
+		return false;
+	}
+
+	printf("Map is loaded. w = %d, h = %d\n", tm->map->width, tm->map->height);
+
+	tm->collision_layer = find_collision_layer(tm->map);
+	if (tm->collision_layer == NULL) {
+		fprintf(stderr, "Could not find collision layer!?\n");
+		return false;
+	}
 
 	return true;
-
 }
 
-int tilemap_get(const struct tilemap* m, int x, int y) {
-	// Protect from going out of bounds. If that happens, return
-	// the tile type TILE_MAP_EDGE so we don't get weird behaviour
-	// by indexing impossible values on the array.
-	if (x < 0 || x >= m->w || y < 0 || y >= m->h) {
-		return TILE_MAP_EDGE;
+void tilemap_free(struct tilemap* tm) {
+	tmx_map_free(tm->map);
+	tm->map = NULL;
+
+	// TODO: free resource_image from tmx_tileset/tmx_image.
+}
+
+int tilemap_tileat(struct tilemap* tm, uintmax_t x, uintmax_t y) {
+	if (x < 0 || x > tm->map->width || y < 0 || y > tm->map->height) {
+		return 1;
 	}
-	// We're having a one dimensional array. We know the width and
-	// height, so we can index that with (x,y) coords by using the
-	// next formula.
-	return m->tiles[y * m->w + x];
+
+	tmx_map* map = tm->map;
+
+
+
+	uintmax_t gid;
+	int idx = y * map->width + x;
+	gid = tm->collision_layer->content.gids[idx];
+	return gid;
 }
 
-void tilemap_add(struct tilemap* m, int tileval) {
-	assert(m != NULL);
-	m->tiles[m->len++] = tileval;
-	m->tiles = realloc(m->tiles, (m->len + 1) * sizeof(int));
-}
-
-void tilemap_free(struct tilemap* m) {
-	assert(m != NULL);
-	free(m->tiles);
+void tilemap_draw(struct tilemap* tm, SDL_Renderer* r) {
+	(void)tm;
+	(void)r;
+	draw_all_layers(r, tm->map);
 }

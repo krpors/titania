@@ -14,8 +14,6 @@
 #include <SDL.h>
 #include <SDL_image.h>
 
-#define debug(s, ...); fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, s);
-
 static SDL_Renderer* gRenderer = NULL;
 static SDL_Window* gWindow = NULL;
 static bool quit = false;
@@ -100,6 +98,8 @@ int main(int argc, char* argv[]) {
 
 	tilewidth = ceilf(800.0 / 12.0);
 	tileheight = ceilf(600.0 / 9.0);
+
+	debug_print("Tile width(%d) and height(%d)\n", tilewidth, tileheight);
 
 	gRenderer = SDL_CreateRenderer(gWindow, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 	SDL_SetRenderDrawBlendMode(gRenderer, SDL_BLENDMODE_BLEND);

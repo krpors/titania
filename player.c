@@ -61,12 +61,6 @@ static bool player_is_colliding(struct player* p, float newx, float newy) {
 	int tilex2 = floorf((newx + p->w) / tilewidth);
 	int tiley2 = floorf((newy + p->h) / tilewidth);
 
-#if 0
-	printf("%s:%d %s()\n", __FILE__, __LINE__, __func__);
-	printf("\tPlayer new position will be: (%3.0f,%3.0f)\n", newx, newy);
-	printf("\tOccupied tiles: (%2d,%2d)-(%2d,%2d)\n", tilex1, tiley1, tilex2, tiley2);
-#endif
-
 	// Now iterate over (tilex1, tiley1) - (tilex2, tiley2), and check
 	// whether the tile is collidable.
 	for (int x = tilex1; x <= tilex2; x++) {
@@ -150,7 +144,7 @@ void player_update(struct player* p, float delta_time) {
 	if (colliding) {
 		if (p->dy < 0.0f) {
 			// Collision with the ceiling, since our dy is negative.
-			printf("Collided with the ceiling\n");
+			debug_print("Collided with the ceiling at %.1f\n", newy);
 			p->bx = p->x + (p->w / 4);
 			p->by = p->y - (p->h / 4);
 			p->jumping = false;
@@ -160,7 +154,7 @@ void player_update(struct player* p, float delta_time) {
 			p->jumping = false;
 			p->can_jump = true;
 			if (p->dy > 1000.0f) {
-				printf("Ouch!\n");
+				debug_print("Hit the ground with a force of %.1f\n", p->dy);
 			}
 		}
 		// Whether we collided with the ceiling or the bottom,

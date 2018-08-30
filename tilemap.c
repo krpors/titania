@@ -1,5 +1,6 @@
 #include "tilemap.h"
 #include "tmx/tmx.h"
+#include "util.h"
 
 #include <assert.h>
 #include <ctype.h>
@@ -57,13 +58,10 @@ static void draw_layer(SDL_Renderer* r, const tmx_map* map, const tmx_layer* lay
  * count as a collidable tile for the player to check with.
  */
 static tmx_layer* find_collision_layer(const tmx_map* map) {
-	tmx_layer* layer = map->ly_head;
-
-	while (layer) {
+	for (tmx_layer* layer = map->ly_head; layer != NULL; layer = layer->next) {
 		if (strcmp(LAYER_COLLISION, layer->name) == 0) {
 			return layer;
 		}
-		layer = layer->next;
 	}
 
 	return NULL;
@@ -77,7 +75,7 @@ bool tilemap_load(struct tilemap* tm, const char* path) {
 		return false;
 	}
 
-	printf("Map is loaded. w = %d, h = %d\n", tm->map->width, tm->map->height);
+	debug_print("Tilemap is loaded: width = %d, height = %d\n", tm->map->width, tm->map->height);
 
 	tm->collision_layer = find_collision_layer(tm->map);
 	if (tm->collision_layer == NULL) {

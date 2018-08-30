@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <map version="1.0" tiledversion="1.1.6" orientation="orthogonal" renderorder="left-up" width="12" height="9" tilewidth="32" tileheight="32" infinite="0" nextobjectid="8">
  <tileset firstgid="1" name="Tileset" tilewidth="32" tileheight="32" tilecount="80" columns="10">
-  <image source="../../pixelart.png" width="320" height="256"/>
+  <image source="sheet.png" width="320" height="256"/>
  </tileset>
  <layer name="Collision" width="12" height="9">
   <data encoding="csv">

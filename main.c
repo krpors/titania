@@ -165,8 +165,11 @@ int main(int argc, char* argv[]) {
 		SDL_SetRenderDrawColor(gRenderer, 0, 0, 0, 0);
 		SDL_RenderClear(gRenderer);
 
+		tilemap_draw_background(&tm, gRenderer);
 		player_draw(&p, gRenderer);
-		tilemap_draw(&tm, gRenderer);
+		tilemap_draw_main(&tm, gRenderer);
+		tilemap_draw_foreground(&tm, gRenderer);
+		//tilemap_draw(&tm, gRenderer);
 		draw_grid(gRenderer);
 
 		if (drawdebug) {

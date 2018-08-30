@@ -208,6 +208,6 @@ void player_draw(struct player* p, SDL_Renderer* r) {
 		SDL_RenderSetScale(r, 1.0f, 1.0f);
 	}
 
-	SDL_SetRenderDrawColor(r, 200, 200, 200, 155);
+	SDL_SetRenderDrawColor(r, 200, 200, 200, 255);
 	SDL_RenderFillRect(r, &rekt);
 }

@@ -10,106 +10,52 @@
 
 #include <SDL_image.h>
 
+static const char* LAYER_MAIN      = "Main";
+static const char* LAYER_COLLISION = "Collision";
+
 extern int tilewidth;
 extern int tileheight;
 
-static void draw_all_layers(SDL_Renderer* r, const tmx_map* map) {
-	tmx_layer* layer = map->ly_head;
-
+static void draw_layer(SDL_Renderer* r, const tmx_map* map, const tmx_layer* layer) {
 	tmx_tileset* tileset = NULL;
 
 	SDL_Texture* tileset_texture = NULL;
 	SDL_Rect src_rect; // source rectangle for the texture
 	SDL_Rect dst_rect; // target rectangle, where the place the src_rect.
 
-	while (layer) {
-		if (strcmp(LAYER_COLLISION, layer->name) != 0) {
-			// if non-null, it contains our collision property, marking it as a
-			// collidable layer. Do not draw, but use it for the physics part.
-
-			uint8_t opacity = layer->opacity * 255;
-			uintmax_t gid;
-			for (uintmax_t i = 0; i < map->height; i++) {
-				for (uintmax_t j = 0; j < map->width; j++) {
-					int idx = i * map->width + j;
-					gid = layer->content.gids[idx];
-					if (map->tiles[gid] == NULL) {
-						continue;
-					}
-
-					tileset = map->tiles[gid]->tileset;
-					tileset_texture = tileset->image->resource_image;
-
-					src_rect.x = map->tiles[gid]->ul_x;
-					src_rect.y = map->tiles[gid]->ul_y;
-					src_rect.w = tileset->tile_width;
-					src_rect.h = tileset->tile_height;
-
-					dst_rect.x = j * tilewidth;
-					dst_rect.y = i * tileheight;
-					dst_rect.w = tilewidth;
-					dst_rect.h = tileheight;
-
-					SDL_SetTextureAlphaMod(tileset_texture, opacity);
-					SDL_RenderCopy(r, tileset_texture, &src_rect, &dst_rect);
-				}
-
+	uint8_t opacity = layer->opacity * 255;
+	uintmax_t gid;
+	for (uintmax_t i = 0; i < map->height; i++) {
+		for (uintmax_t j = 0; j < map->width; j++) {
+			int idx = i * map->width + j;
+			gid = layer->content.gids[idx];
+			if (map->tiles[gid] == NULL) {
+				continue;
 			}
-		}
 
-		layer = layer->next;
+			tileset = map->tiles[gid]->tileset;
+			tileset_texture = tileset->image->resource_image;
+
+			src_rect.x = map->tiles[gid]->ul_x;
+			src_rect.y = map->tiles[gid]->ul_y;
+			src_rect.w = tileset->tile_width;
+			src_rect.h = tileset->tile_height;
+
+			dst_rect.x = j * tilewidth;
+			dst_rect.y = i * tileheight;
+			dst_rect.w = tilewidth;
+			dst_rect.h = tileheight;
+
+			SDL_SetTextureAlphaMod(tileset_texture, opacity);
+			SDL_RenderCopy(r, tileset_texture, &src_rect, &dst_rect);
+		}
 	}
 }
 
-static void draw_layer(SDL_Renderer* r, const tmx_map* map, const char* name) {
-	tmx_layer* layer = map->ly_head;
-
-	tmx_tileset* tileset = NULL;
-
-	SDL_Texture* tileset_texture = NULL;
-	SDL_Rect src_rect; // source rectangle for the texture
-	SDL_Rect dst_rect; // target rectangle, where the place the src_rect.
-
-	while (layer) {
-		if (strcmp(name, layer->name) == 0) {
-			// if non-null, it contains our collision property, marking it as a
-			// collidable layer. Do not draw, but use it for the physics part.
-
-			uint8_t opacity = layer->opacity * 255;
-			uintmax_t gid;
-			for (uintmax_t i = 0; i < map->height; i++) {
-				for (uintmax_t j = 0; j < map->width; j++) {
-					int idx = i * map->width + j;
-					gid = layer->content.gids[idx];
-					if (map->tiles[gid] == NULL) {
-						continue;
-					}
-
-					tileset = map->tiles[gid]->tileset;
-					tileset_texture = tileset->image->resource_image;
-
-					src_rect.x = map->tiles[gid]->ul_x;
-					src_rect.y = map->tiles[gid]->ul_y;
-					src_rect.w = tileset->tile_width;
-					src_rect.h = tileset->tile_height;
-
-					dst_rect.x = j * tilewidth;
-					dst_rect.y = i * tileheight;
-					dst_rect.w = tilewidth;
-					dst_rect.h = tileheight;
-
-					SDL_SetTextureAlphaMod(tileset_texture, opacity);
-					SDL_RenderCopy(r, tileset_texture, &src_rect, &dst_rect);
-				}
-
-			}
-			break;
-		}
-
-		layer = layer->next;
-	}
-}
-
+/**
+ * Finds the layer namd "Collision". Every set gid in that map will
+ * count as a collidable tile for the player to check with.
+ */
 static tmx_layer* find_collision_layer(const tmx_map* map) {
 	tmx_layer* layer = map->ly_head;
 
@@ -161,18 +107,37 @@ int tilemap_tileat(struct tilemap* tm, int x, int y) {
 	return gid;
 }
 
-void tilemap_draw(struct tilemap* tm, SDL_Renderer* r) {
-	(void)tm;
-	(void)r;
-	draw_all_layers(r, tm->map);
+void tilemap_draw_foreground(struct tilemap* tm, SDL_Renderer* r) {
+	tmx_map* map = tm->map;
+	bool start_drawing = false;
+	// Iterate over every layer until we hit the 'Main' layer. The foreground
+	// is everything including 'Main', and all layers after (on top of it).
+	for(tmx_layer* layer = map->ly_head; layer != NULL; layer = layer->next) {
+		if (strcmp(LAYER_MAIN, layer->name) == 0) {
+			// So, we found our 'Main' layer. We can start drawing layers.
+			start_drawing = true;
+		}
+
+		if (start_drawing) {
+			draw_layer(r, map, layer);
+		}
+	}
 }
 
-void tilemap_draw_foreground(struct tilemap* tm, SDL_Renderer* r) {
-	draw_layer(r, tm->map, "Foreground");
-}
-void tilemap_draw_main(struct tilemap* tm, SDL_Renderer* r) {
-	draw_layer(r, tm->map, "Main");
-}
 void tilemap_draw_background(struct tilemap* tm, SDL_Renderer* r) {
-	draw_layer(r, tm->map, "Background");
+	tmx_map* map = tm->map;
+	// Iterate over every layer until we hit the 'Main' layer. The background
+	// is everything up until that 'Main' layer (but not inclusive).
+	for(tmx_layer* layer = map->ly_head; layer != NULL; layer = layer->next) {
+		if (strcmp(LAYER_COLLISION, layer->name) == 0) {
+			// Do not draw our collision layer, that would be stupid.
+			continue;
+		}
+
+		draw_layer(r, map, layer);
+		// We draw up until the 'Main' layer. That are our background layers.
+		if (strcmp(LAYER_MAIN, layer->name) == 0) {
+			break;
+		}
+	}
 }

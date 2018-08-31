@@ -24,12 +24,47 @@ static void draw_layer(SDL_Renderer* r, const tmx_map* map, const tmx_layer* lay
 	SDL_Rect src_rect; // source rectangle for the texture
 	SDL_Rect dst_rect; // target rectangle, where the place the src_rect.
 
+
 	uint8_t opacity = layer->opacity * 255;
 	uintmax_t gid;
 	for (uintmax_t i = 0; i < map->height; i++) {
 		for (uintmax_t j = 0; j < map->width; j++) {
+			SDL_RendererFlip flip = SDL_FLIP_NONE;
+			double rotate = 0;
+
 			int idx = i * map->width + j;
 			gid = layer->content.gids[idx];
+
+			bool flipped_horizontally = (gid & TMX_FLIPPED_HORIZONTALLY);
+			bool flipped_vertically   = (gid & TMX_FLIPPED_VERTICALLY);
+			bool flipped_diagonally   = (gid & TMX_FLIPPED_DIAGONALLY);
+
+			// XXX: what a clusterfuck this is. What am I missing here?
+			// This part just screams "I don't get these flags" and begs
+			// for a bit of refactoring.
+			if (flipped_diagonally) {
+				if (flipped_horizontally && flipped_vertically) {
+					rotate = 90;
+					flip |= SDL_FLIP_HORIZONTAL;
+				} else if (flipped_horizontally) {
+					rotate = 90;
+				} else if (flipped_vertically) {
+					rotate = -90;
+				} else {
+					rotate = 90;
+					flip |= SDL_FLIP_VERTICAL;
+				}
+			} else {
+				if (flipped_horizontally) {
+					flip |= SDL_FLIP_HORIZONTAL;
+				}
+				if (flipped_vertically) {
+					flip |= SDL_FLIP_VERTICAL;
+				}
+			}
+
+			// Always clear the motherflippin' bits :)
+			gid &= TMX_FLIP_BITS_REMOVAL;
 			if (map->tiles[gid] == NULL) {
 				continue;
 			}
@@ -48,7 +83,7 @@ static void draw_layer(SDL_Renderer* r, const tmx_map* map, const tmx_layer* lay
 			dst_rect.h = tileheight;
 
 			SDL_SetTextureAlphaMod(tileset_texture, opacity);
-			SDL_RenderCopy(r, tileset_texture, &src_rect, &dst_rect);
+			SDL_RenderCopyEx(r, tileset_texture, &src_rect, &dst_rect, rotate, NULL, flip);
 		}
 	}
 }

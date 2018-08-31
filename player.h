@@ -1,6 +1,7 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
+#include "camera.h"
 #include "util.h"
 
 #include <stdbool.h>
@@ -56,6 +57,6 @@ void player_update(struct player* p, float delta_time);
  */
 void player_handle_event(struct player* p, const SDL_Event* event);
 
-void player_draw(struct player* p, SDL_Renderer* r);
+void player_draw(const struct player* p, const struct camera* cam, SDL_Renderer* r);
 
 #endif // PLAYER_H

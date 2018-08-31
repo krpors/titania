@@ -1,3 +1,4 @@
+#include "camera.h"
 #include "player.h"
 #include "bitmapfont.h"
 #include "tilemap.h"
@@ -185,10 +186,11 @@ void player_handle_event(struct player* p, const SDL_Event* event) {
 	}
 }
 
-void player_draw(struct player* p, SDL_Renderer* r) {
+void player_draw(const struct player* p, const struct camera* cam, SDL_Renderer* r) {
+	(void)cam;
 	SDL_Rect rekt = {
-		.x = p->x,
-		.y = p->y,
+		.x = p->x - cam->x,
+		.y = p->y - cam->y,
 		.w = p->w,
 		.h = p->h
 	};
@@ -197,7 +199,7 @@ void player_draw(struct player* p, SDL_Renderer* r) {
 		float scale = p->scale;
 		SDL_RenderSetScale(r, scale, scale);
 		SDL_SetTextureAlphaMod(p->font->texture, p->boop_life);
-		bitmapfont_renderf(p->font, p->bx / scale, p->by / scale, "Boop!!!");
+		bitmapfont_renderf(p->font, (p->bx - cam->x) / scale, (p->by - cam->y) / scale, "Boop!!!");
 		SDL_SetTextureAlphaMod(p->font->texture, 0xff);
 		SDL_RenderSetScale(r, 1.0f, 1.0f);
 	}

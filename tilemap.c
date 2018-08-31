@@ -1,3 +1,4 @@
+#include "camera.h"
 #include "tilemap.h"
 #include "tmx/tmx.h"
 #include "util.h"
@@ -17,7 +18,8 @@ static const char* LAYER_COLLISION = "Collision";
 extern int tilewidth;
 extern int tileheight;
 
-static void draw_layer(SDL_Renderer* r, const tmx_map* map, const tmx_layer* layer) {
+static void draw_layer(struct tilemap* tm, struct camera* cam, SDL_Renderer* r, const tmx_layer* layer) {
+	tmx_map* map = tm->map;
 	tmx_tileset* tileset = NULL;
 
 	SDL_Texture* tileset_texture = NULL;
@@ -77,8 +79,8 @@ static void draw_layer(SDL_Renderer* r, const tmx_map* map, const tmx_layer* lay
 			src_rect.w = tileset->tile_width;
 			src_rect.h = tileset->tile_height;
 
-			dst_rect.x = j * tilewidth;
-			dst_rect.y = i * tileheight;
+			dst_rect.x = j * tilewidth - cam->x;
+			dst_rect.y = i * tileheight - cam->y;
 			dst_rect.w = tilewidth;
 			dst_rect.h = tileheight;
 
@@ -140,7 +142,7 @@ int tilemap_tileat(struct tilemap* tm, int x, int y) {
 	return gid;
 }
 
-void tilemap_draw_foreground(struct tilemap* tm, SDL_Renderer* r) {
+void tilemap_draw_foreground(struct tilemap* tm, struct camera* cam, SDL_Renderer* r) {
 	tmx_map* map = tm->map;
 	bool start_drawing = false;
 	// Iterate over every layer until we hit the 'Main' layer. The foreground
@@ -152,12 +154,12 @@ void tilemap_draw_foreground(struct tilemap* tm, SDL_Renderer* r) {
 		}
 
 		if (start_drawing) {
-			draw_layer(r, map, layer);
+			draw_layer(tm, cam, r, layer);
 		}
 	}
 }
 
-void tilemap_draw_background(struct tilemap* tm, SDL_Renderer* r) {
+void tilemap_draw_background(struct tilemap* tm, struct camera* cam, SDL_Renderer* r) {
 	tmx_map* map = tm->map;
 	// Iterate over every layer until we hit the 'Main' layer. The background
 	// is everything up until that 'Main' layer (but not inclusive).
@@ -167,7 +169,7 @@ void tilemap_draw_background(struct tilemap* tm, SDL_Renderer* r) {
 			continue;
 		}
 
-		draw_layer(r, map, layer);
+		draw_layer(tm, cam, r, layer);
 		// We draw up until the 'Main' layer. That are our background layers.
 		if (strcmp(LAYER_MAIN, layer->name) == 0) {
 			break;

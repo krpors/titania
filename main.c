@@ -1,3 +1,4 @@
+#include "camera.h"
 #include "tilemap.h"
 #include "player.h"
 #include "bitmapfont.h"
@@ -117,6 +118,9 @@ int main(int argc, char* argv[]) {
 	player_init(&p);
 	p.map = &tm;
 
+	struct camera cam;
+	camera_init(&cam, 800.0, 600.0);
+
 	const char* glyphs = " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,!?-+/():;%&`'*#=[]\"";
 	struct bitmapfont bmf;
 	if (!bitmapfont_init(&bmf, gRenderer, "font.png", glyphs)) {
@@ -160,14 +164,15 @@ int main(int argc, char* argv[]) {
 
 		player_update(&p, deltaTime);
 
+		camera_update(&cam, &p);
 
 		// Render logic
 		SDL_SetRenderDrawColor(gRenderer, 0, 0, 0, 0);
 		SDL_RenderClear(gRenderer);
 
-		tilemap_draw_background(&tm, gRenderer);
-		player_draw(&p, gRenderer);
-		tilemap_draw_foreground(&tm, gRenderer);
+		tilemap_draw_background(&tm, &cam, gRenderer);
+		player_draw(&p, &cam, gRenderer);
+		tilemap_draw_foreground(&tm, &cam, gRenderer);
 
 		draw_grid(gRenderer);
 
@@ -179,6 +184,7 @@ int main(int argc, char* argv[]) {
 			// spacing
 			bitmapfont_renderf(&bmf, 0, 5 * 14, "Delta time: %-3f", deltaTime);
 			bitmapfont_renderf(&bmf, 0, 6 * 14, "FPS: %-3f", fps);
+			bitmapfont_renderf(&bmf, 0, 7 * 14, "Cam: %1.0f, %1.0f", cam.x, cam.y);
 		}
 
 		SDL_RenderPresent(gRenderer);

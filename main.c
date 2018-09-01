@@ -26,7 +26,7 @@ static struct player p;
 int tilewidth = 64;
 int tileheight = 64;
 
-void draw_grid(SDL_Renderer* r) {
+void draw_grid(const struct camera* cam, SDL_Renderer* r) {
 	if (drawgrid) {
 		int w = tilewidth;
 		int h = tileheight;
@@ -97,6 +97,8 @@ int main(int argc, char* argv[]) {
 		exit(1);
 	}
 
+	// XXX: the whole game is now sort of dependent on these exact
+	// values. Gotta fix that.
 	tilewidth = ceilf(800.0 / 12.0);
 	tileheight = ceilf(600.0 / 9.0);
 
@@ -164,7 +166,7 @@ int main(int argc, char* argv[]) {
 
 		player_update(&p, deltaTime);
 
-		camera_update(&cam, &p);
+		camera_update(&cam, &p, &tm);
 
 		// Render logic
 		SDL_SetRenderDrawColor(gRenderer, 0, 0, 0, 0);
@@ -174,7 +176,7 @@ int main(int argc, char* argv[]) {
 		player_draw(&p, &cam, gRenderer);
 		tilemap_draw_foreground(&tm, &cam, gRenderer);
 
-		draw_grid(gRenderer);
+		draw_grid(&cam, gRenderer);
 
 		if (drawdebug) {
 			bitmapfont_renderf(&bmf, 0, 0 * 14, "P(%3.0f, %3.0f), vx: %f, dy: %f", p.x, p.y, p.dx, p.dy);

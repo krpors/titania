@@ -23,13 +23,13 @@ static bool drawgrid = false;
 static bool drawdebug = false;
 static struct player p;
 
-int tilewidth = 64;
-int tileheight = 64;
+float tilewidth = 64;
+float tileheight = 64;
 
 void draw_grid(const struct camera* cam, SDL_Renderer* r) {
 	if (drawgrid) {
-		int w = tilewidth;
-		int h = tileheight;
+		float w = tilewidth;
+		float h = tileheight;
 		SDL_SetRenderDrawColor(r, 0, 255, 0, 55);
 		for (int x = 0; x < 800; x += w) {
 			SDL_RenderDrawLine(r, x + w, 0, x + w, 600);
@@ -102,7 +102,7 @@ int main(int argc, char* argv[]) {
 	tilewidth = ceilf(800.0 / 12.0);
 	tileheight = ceilf(600.0 / 9.0);
 
-	debug_print("Tile width(%d) and height(%d)\n", tilewidth, tileheight);
+	debug_print("Tile width(%f) and height(%f)\n", tilewidth, tileheight);
 
 	gRenderer = SDL_CreateRenderer(gWindow, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 	SDL_SetRenderDrawBlendMode(gRenderer, SDL_BLENDMODE_BLEND);
@@ -116,6 +116,8 @@ int main(int argc, char* argv[]) {
 		tilemap_free(&tm);
 		exit(1);
 	}
+	tm.tilewidth = tilewidth;
+	tm.tileheight = tileheight;
 
 	player_init(&p);
 	p.map = &tm;
@@ -146,6 +148,7 @@ int main(int argc, char* argv[]) {
 				quit = true;
 			}
 			handle_keypress(&e);
+			tilemap_handle_event(&tm, &e);
 			player_handle_event(&p, &e);
 		}
 

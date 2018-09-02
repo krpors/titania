@@ -47,20 +47,16 @@ void player_stop(struct player* p) {
 	p->dx = PLAYER_MIN_DX;
 }
 
-// TODO: stop using globals... ?
-extern int tilewidth;
-extern int tileheight;
-
 static bool player_is_colliding(struct player* p, float newx, float newy) {
 	assert(p->map != NULL);
 
 	// Get the tile coordinate of the top-left corner of the player's bounds.
-	int tilex1 = floorf(newx / tilewidth);
-	int tiley1 = floorf(newy / tileheight);
+	int tilex1 = floorf(newx / p->map->tilewidth);
+	int tiley1 = floorf(newy / p->map->tileheight);
 
 	// Get the tile coordinate of the bottom-right corner of the player's bounds.
-	int tilex2 = floorf((newx + p->w) / tilewidth);
-	int tiley2 = floorf((newy + p->h) / tilewidth);
+	int tilex2 = floorf((newx + p->w) / p->map->tilewidth);
+	int tiley2 = floorf((newy + p->h) / p->map->tileheight);
 
 	// Now iterate over (tilex1, tiley1) - (tilex2, tiley2), and check
 	// whether the tile is collidable.

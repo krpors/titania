@@ -15,9 +15,6 @@
 static const char* LAYER_MAIN      = "Main";
 static const char* LAYER_COLLISION = "Collision";
 
-extern int tilewidth;
-extern int tileheight;
-
 static void draw_layer(struct tilemap* tm, struct camera* cam, SDL_Renderer* r, const tmx_layer* layer) {
 	tmx_map* map = tm->map;
 	tmx_tileset* tileset = NULL;
@@ -79,10 +76,10 @@ static void draw_layer(struct tilemap* tm, struct camera* cam, SDL_Renderer* r, 
 			src_rect.w = tileset->tile_width;
 			src_rect.h = tileset->tile_height;
 
-			dst_rect.x = j * tilewidth - cam->x;
-			dst_rect.y = i * tileheight - cam->y;
-			dst_rect.w = tilewidth;
-			dst_rect.h = tileheight;
+			dst_rect.x = j * tm->tilewidth - cam->x;
+			dst_rect.y = i * tm->tileheight - cam->y;
+			dst_rect.w = tm->tilewidth;
+			dst_rect.h = tm->tileheight;
 
 			SDL_SetTextureAlphaMod(tileset_texture, opacity);
 			SDL_RenderCopyEx(r, tileset_texture, &src_rect, &dst_rect, rotate, NULL, flip);
@@ -120,6 +117,9 @@ bool tilemap_load(struct tilemap* tm, const char* path) {
 		tilemap_free(tm);
 		return false;
 	}
+
+	tm->tilewidth = 0;
+	tm->tilewidth = 0;
 
 	return true;
 }
@@ -173,6 +173,18 @@ void tilemap_draw_background(struct tilemap* tm, struct camera* cam, SDL_Rendere
 		// We draw up until the 'Main' layer. That are our background layers.
 		if (strcmp(LAYER_MAIN, layer->name) == 0) {
 			break;
+		}
+	}
+}
+
+void tilemap_handle_event(struct tilemap* tm, const SDL_Event* event) {
+	// for some quick debugging.
+	if (event->type == SDL_KEYDOWN) {
+		switch (event->key.keysym.sym) {
+		case SDLK_KP_PLUS: tm->tilewidth++; break;
+		case SDLK_KP_MINUS: tm->tilewidth--; break;
+		case SDLK_KP_DIVIDE: tm->tileheight--; break;
+		case SDLK_KP_MULTIPLY: tm->tileheight++; break;
 		}
 	}
 }

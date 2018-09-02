@@ -81,8 +81,14 @@ static void draw_layer(struct tilemap* tm, struct camera* cam, SDL_Renderer* r, 
 			dst_rect.w = tm->tilewidth;
 			dst_rect.h = tm->tileheight;
 
+
 			SDL_SetTextureAlphaMod(tileset_texture, opacity);
 			SDL_RenderCopyEx(r, tileset_texture, &src_rect, &dst_rect, rotate, NULL, flip);
+
+			if (j == 5 && i == 5) {
+				SDL_SetRenderDrawColor(r, 0xff, 0xff, 0xff, 0xff);
+				SDL_RenderDrawRect(r, &dst_rect);
+			}
 		}
 	}
 }
@@ -181,10 +187,14 @@ void tilemap_handle_event(struct tilemap* tm, const SDL_Event* event) {
 	// for some quick debugging.
 	if (event->type == SDL_KEYDOWN) {
 		switch (event->key.keysym.sym) {
-		case SDLK_KP_PLUS: tm->tilewidth++; break;
-		case SDLK_KP_MINUS: tm->tilewidth--; break;
-		case SDLK_KP_DIVIDE: tm->tileheight--; break;
-		case SDLK_KP_MULTIPLY: tm->tileheight++; break;
+		case SDLK_KP_PLUS:
+			tm->tilewidth++;
+			tm->tileheight++;
+			break;
+		case SDLK_KP_MINUS:
+			tm->tilewidth--;
+			tm->tileheight--;
+			break;
 		}
 	}
 }

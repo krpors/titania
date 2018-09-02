@@ -27,6 +27,7 @@ float tilewidth = 64;
 float tileheight = 64;
 
 void draw_grid(const struct camera* cam, SDL_Renderer* r) {
+	(void)cam;
 	if (drawgrid) {
 		float w = tilewidth;
 		float h = tileheight;
@@ -97,12 +98,11 @@ int main(int argc, char* argv[]) {
 		exit(1);
 	}
 
-	// XXX: the whole game is now sort of dependent on these exact
-	// values. Gotta fix that.
-	tilewidth = ceilf(800.0 / 12.0);
-	tileheight = ceilf(600.0 / 9.0);
+	float ratio = 14.0;
+	tilewidth = ceilf(800.0 / ratio);
+	tileheight = ceilf(600.0 / (ratio / 1.3333));
 
-	debug_print("Tile width(%f) and height(%f)\n", tilewidth, tileheight);
+	debug_print("Tile width(%.0f) and height(%.0f)\n", tilewidth, tileheight);
 
 	gRenderer = SDL_CreateRenderer(gWindow, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 	SDL_SetRenderDrawBlendMode(gRenderer, SDL_BLENDMODE_BLEND);

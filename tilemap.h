@@ -28,5 +28,6 @@ int tilemap_tileat(struct tilemap* tm, int x, int y);
 void tilemap_draw_foreground(struct tilemap* tm, struct camera* cam, SDL_Renderer* r);
 void tilemap_draw_background(struct tilemap* tm, struct camera* cam, SDL_Renderer* r);
 void tilemap_handle_event(struct tilemap* tm, const SDL_Event* event);
+void tilemap_getsize(const struct tilemap* tm, int* w, int* h);
 
 #endif // TILEMAP_H

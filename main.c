@@ -26,17 +26,19 @@ static struct player p;
 float tilewidth = 64;
 float tileheight = 64;
 
-void draw_grid(const struct camera* cam, SDL_Renderer* r) {
+void draw_grid(const struct camera* cam, const struct tilemap* tm, SDL_Renderer* r) {
 	(void)cam;
 	if (drawgrid) {
-		float w = tilewidth;
-		float h = tileheight;
+		int mapwidth, mapheight;
+		tilemap_getsize(tm, &mapwidth, &mapheight);
+		float tw = tm->tilewidth;
+		float th = tm->tileheight;
 		SDL_SetRenderDrawColor(r, 0, 255, 0, 55);
-		for (int x = 0; x < 800; x += w) {
-			SDL_RenderDrawLine(r, x + w, 0, x + w, 600);
+		for (int x = 0; x < mapwidth; x += tw) {
+			SDL_RenderDrawLine(r, x + tw - cam->x, 0, x + tw - cam->x, 600);
 		}
-		for (int y = 0; y < 600; y += h) {
-			SDL_RenderDrawLine(r, 0, y + h, 800, y + h);
+		for (int y = 0; y < mapheight; y += th) {
+			SDL_RenderDrawLine(r, 0, y + th - cam->y, 800, y + th - cam->y);
 		}
 	}
 }
@@ -179,7 +181,7 @@ int main(int argc, char* argv[]) {
 		player_draw(&p, &cam, gRenderer);
 		tilemap_draw_foreground(&tm, &cam, gRenderer);
 
-		draw_grid(&cam, gRenderer);
+		draw_grid(&cam, &tm, gRenderer);
 
 		if (drawdebug) {
 			bitmapfont_renderf(&bmf, 0, 0 * 14, "P(%3.0f, %3.0f), vx: %f, dy: %f", p.x, p.y, p.dx, p.dy);
@@ -190,6 +192,7 @@ int main(int argc, char* argv[]) {
 			bitmapfont_renderf(&bmf, 0, 5 * 14, "Delta time: %-3f", deltaTime);
 			bitmapfont_renderf(&bmf, 0, 6 * 14, "FPS: %-3f", fps);
 			bitmapfont_renderf(&bmf, 0, 7 * 14, "Cam: %1.0f, %1.0f", cam.x, cam.y);
+			bitmapfont_renderf(&bmf, 0, 8 * 14, "Tile size: %1.0f x %1.0f", tm.tilewidth, tm.tileheight);
 		}
 
 		SDL_RenderPresent(gRenderer);

@@ -198,3 +198,8 @@ void tilemap_handle_event(struct tilemap* tm, const SDL_Event* event) {
 		}
 	}
 }
+
+void tilemap_getsize(const struct tilemap* tm, int* w, int* h) {
+	*w = tm->tilewidth  * tm->map->width;
+	*h = tm->tileheight * tm->map->height;
+}

@@ -8,8 +8,6 @@
 
 #include <SDL.h>
 
-static const int TILE_SIZE = 64;
-
 /*
  * The tilemap.
  */

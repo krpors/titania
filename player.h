@@ -7,13 +7,15 @@
 #include <stdbool.h>
 #include <SDL.h>
 
-static const float PLAYER_MIN_DX = 350.0f;
+static const float PLAYER_MIN_DX = 50.0f;
 static const float PLAYER_MAX_DX = 480.0f;
 
 static const float PLAYER_JUMP_VEL = 1000.0f;
 static const float PLAYER_MAX_DY = 600.0f;
 
 static const float GRAVITY = 3000.0f;
+
+void anim_test();
 
 struct player {
 	struct tilemap* map;
@@ -37,6 +39,12 @@ struct player {
 	bool right;
 	bool up;
 	bool down;
+
+	float counter;
+
+	struct anim* move_animation;
+	SDL_Texture* texture;
+	SDL_Rect rest;
 };
 
 void player_init(struct player* p);
@@ -45,6 +53,8 @@ void player_right(struct player* p);
 void player_jump(struct player* p);
 void player_down(struct player* p);
 void player_stop(struct player* p);
+
+bool player_load_texture(struct player* p, SDL_Renderer* r, const char* path);
 
 /*
  * Update the player position. The delta_time is the time in milliseconds

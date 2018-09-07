@@ -26,6 +26,38 @@ static struct player p;
 float tilewidth = 64;
 float tileheight = 64;
 
+struct background {
+	SDL_Texture* tex;
+	int w;
+	int h;
+};
+
+bool background_init(struct background* bg, SDL_Renderer* r, const char* path) {
+	bg->tex = IMG_LoadTexture(r, path);
+	if (bg->tex == NULL) {
+		return false;
+	}
+
+	SDL_QueryTexture(bg->tex, NULL, NULL, &bg->w, &bg->h);
+
+	return true;
+}
+
+void background_free(struct background* bg) {
+	SDL_DestroyTexture(bg->tex);
+	bg->tex = NULL;
+}
+
+void background_draw(struct background* bg, SDL_Renderer* r, struct camera* cam) {
+	SDL_SetRenderDrawColor(r, 0xff, 0xff, 0xff, 0xff);
+	SDL_Rect src = {0, 0, bg->w, bg->h};
+	SDL_Rect dst = {-cam->x / 6 - 1800, -cam->y / 6 - 200, bg->w * 2, bg->h * 2};
+	SDL_RenderCopy(r, bg->tex, &src, &dst);
+}
+
+
+
+
 void draw_grid(const struct camera* cam, const struct tilemap* tm, SDL_Renderer* r) {
 	(void)cam;
 	if (drawgrid) {
@@ -113,6 +145,14 @@ int main(int argc, char* argv[]) {
 	tmx_img_load_func = (void* (*)(const char*))sdl_img_loader;
 	tmx_img_free_func = (void (*)(void*)) SDL_DestroyTexture;
 
+#if 1
+	struct background bg;
+	if (!background_init(&bg, gRenderer, "background.png")) {
+		fprintf(stderr, "Unable to load background!\n");
+		exit(1);
+	}
+#endif
+
 	struct tilemap tm;
 	if (!tilemap_load(&tm, "map01.tmx")) {
 		tilemap_free(&tm);
@@ -122,6 +162,9 @@ int main(int argc, char* argv[]) {
 	tm.tileheight = tileheight;
 
 	player_init(&p);
+	if (!player_load_texture(&p, gRenderer, "player.png")) {
+		exit(1);
+	}
 	p.map = &tm;
 
 	struct camera cam;
@@ -177,6 +220,7 @@ int main(int argc, char* argv[]) {
 		SDL_SetRenderDrawColor(gRenderer, 0, 0, 0, 0);
 		SDL_RenderClear(gRenderer);
 
+		background_draw(&bg, gRenderer, &cam);
 		tilemap_draw_background(&tm, &cam, gRenderer);
 		player_draw(&p, &cam, gRenderer);
 		tilemap_draw_foreground(&tm, &cam, gRenderer);
@@ -188,11 +232,12 @@ int main(int argc, char* argv[]) {
 			bitmapfont_renderf(&bmf, 0, 1 * 14, "  jumping: %d", p.jumping);
 			bitmapfont_renderf(&bmf, 0, 2 * 14, "  can jump: %d", p.can_jump);
 			bitmapfont_renderf(&bmf, 0, 3 * 14, "  boop_life: %-3d", p.boop_life);
+			// bitmapfont_renderf(&bmf, 0, 4 * 14, "  anim: %d", p.anim);
 			// spacing
-			bitmapfont_renderf(&bmf, 0, 5 * 14, "Delta time: %-3f", deltaTime);
-			bitmapfont_renderf(&bmf, 0, 6 * 14, "FPS: %-3f", fps);
-			bitmapfont_renderf(&bmf, 0, 7 * 14, "Cam: %1.0f, %1.0f", cam.x, cam.y);
-			bitmapfont_renderf(&bmf, 0, 8 * 14, "Tile size: %1.0f x %1.0f", tm.tilewidth, tm.tileheight);
+			bitmapfont_renderf(&bmf, 0, 6 * 14, "Delta time: %-3f", deltaTime);
+			bitmapfont_renderf(&bmf, 0, 7 * 14, "FPS: %-3f", fps);
+			bitmapfont_renderf(&bmf, 0, 8 * 14, "Cam: %1.0f, %1.0f", cam.x, cam.y);
+			bitmapfont_renderf(&bmf, 0, 9 * 14, "Tile size: %1.0f x %1.0f", tm.tilewidth, tm.tileheight);
 		}
 
 		SDL_RenderPresent(gRenderer);

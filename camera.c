@@ -10,9 +10,8 @@ void camera_init(struct camera* cam, int winwidth, int winheight) {
 void camera_update(struct camera* cam, const struct player* p, const struct tilemap* map) {
 	// TODO: smooth lerping
 
-	// XXX: somehow subtracting with -20 takes care of the extra blackness
-	uint32_t mapwidth  = (map->map->width)  * map->tilewidth - 20;
-	uint32_t mapheight = (map->map->height) * map->tileheight - 20;
+	uint32_t mapwidth  = (map->map->width)  * map->tilewidth - p->w;
+	uint32_t mapheight = (map->map->height) * map->tileheight - p->h;
 
 	uint32_t xmin = 0;
 	uint32_t xmax = mapwidth - cam->winwidth + p->w;
@@ -27,6 +26,7 @@ void camera_update(struct camera* cam, const struct player* p, const struct tile
 	if (cam->x < xmin) {
 		cam->x = xmin;
 	}
+	
 	if (cam->x > xmax) {
 		cam->x = xmax;
 	}

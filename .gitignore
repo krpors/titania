@@ -41,6 +41,7 @@
 *.su
 *.idb
 *.pdb
+.gdb_history
 
 # Kernel Module Compile Results
 *.mod*
@@ -54,3 +55,4 @@ dkms.conf
 # Custom stuff
 Session.vim
 main
+.vscode

@@ -7,8 +7,8 @@
 #include <stdbool.h>
 #include <SDL.h>
 
-static const float PLAYER_MIN_DX = 50.0f;
-static const float PLAYER_MAX_DX = 480.0f;
+static const float PLAYER_MIN_DX = 300.0f;
+static const float PLAYER_MAX_DX = 400.0f;
 
 static const float PLAYER_JUMP_VEL = 1000.0f;
 static const float PLAYER_MAX_DY = 600.0f;
@@ -28,6 +28,8 @@ struct player {
 	int w;
 	int h;
 
+	int facing_direction;
+
 	float scale;
 	int bx, by;
 	int boop_life;
@@ -40,11 +42,16 @@ struct player {
 	bool up;
 	bool down;
 
-	float counter;
+	SDL_Texture* texture; // the player texture spritesheet
 
-	struct anim* move_animation;
-	SDL_Texture* texture;
-	SDL_Rect rest;
+	float counter; // counter to know when to increment the animation
+
+	struct anim* move_animation; // moving animation
+	struct anim* rest_animation; // rest animation.
+
+	SDL_Rect rest; // when at rest.
+
+	SDL_Rect rect_collision; // rectangle for collision purposes
 };
 
 void player_init(struct player* p);

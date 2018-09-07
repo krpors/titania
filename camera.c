@@ -3,6 +3,7 @@
 #include "tilemap.h"
 
 void camera_init(struct camera* cam, int winwidth, int winheight) {
+	debug_print("Camera initializing with window width: %d, height: %d\n", winwidth, winheight);
 	cam->winwidth = winwidth;
 	cam->winheight = winheight;
 }

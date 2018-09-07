@@ -9,55 +9,6 @@
 #include <SDL.h>
 #include <SDL_image.h>
 
-struct anim {
-	int curr;
-	int n;
-	SDL_Rect* current;
-	SDL_Rect* rectangles; 
-};
-
-struct anim* anim_create() {
-	struct anim* a = malloc(sizeof(struct anim));
-	a->n = 0;
-	a->curr = 0;
-	a->rectangles = malloc(1 * sizeof(SDL_Rect));
-	return a;
-}
-
-void anim_free(struct anim* a) {
-	free(a->rectangles);
-	free(a);
-}
-
-void anim_add(struct anim* a, int x, int y, int w, int h) {
-	SDL_Rect r = {x, y, w, h};
-	a->rectangles[a->n] = r;
-	a->n++;
-	debug_print("Next size is %d\n", a->n);
-	a->rectangles = realloc(a->rectangles, (a->n + 1) * sizeof(SDL_Rect));
-}
-
-void anim_reset(struct anim* a) {
-	a->curr = 0;
-}
-
-void anim_next(struct anim* a) {
-	a->curr++;
-	// Make sure we stay in bounds. Repeatedly calling anim_next() will
-	// result in a circular array behaviour: when next()ing on the last entry,
-	// the next call will result result in the first element.
-	if (a->curr > a->n - 1 || a->curr < 0) {
-		a->curr = 0;
-	}
-
-	debug_print("next animation is %d/%d\n", a->curr, a->n);
-}
-
-const SDL_Rect* anim_current(struct anim* a) {
-	assert(a->curr >= 0);
-	return &a->rectangles[a->curr];
-}
-
 void player_init(struct player* p) {
 	p->map = NULL;
 	p->x  = 120;
@@ -67,6 +18,8 @@ void player_init(struct player* p) {
 	p->w = 32;
 	p->h = 32;
 
+	p->facing_direction = 1; // right
+
 	p->scale = 1.0f;
 	p->boop_life = 0;
 	p->jumping = false;
@@ -74,7 +27,13 @@ void player_init(struct player* p) {
 
 	p->counter = SDL_GetTicks();
 
-	p->move_animation = anim_create();
+	p->move_animation = anim_create(30);
+	p->rest_animation = anim_create(80);
+
+	p->rect_collision.x = 4 * 2;
+	p->rect_collision.y = 1 * 2;
+	p->rect_collision.w = 9 * 2;
+	p->rect_collision.h = 15 * 2;
 }
 
 void player_left(struct player* p) {
@@ -115,6 +74,11 @@ bool player_load_texture(struct player* p, SDL_Renderer* r, const char* path) {
 	anim_add(p->move_animation, 16 * 4, 16, 16, 16);
 	anim_add(p->move_animation, 16 * 5, 16, 16, 16);
 
+	anim_add(p->rest_animation, 16 * 0, 0, 16, 16);
+	anim_add(p->rest_animation, 16 * 1, 0, 16, 16);
+	anim_add(p->rest_animation, 16 * 2, 0, 16, 16);
+	anim_add(p->rest_animation, 16 * 3, 0, 16, 16);
+
 	p->rest.x = 0;
 	p->rest.y = 0;
 	p->rest.w = 16;
@@ -138,7 +102,6 @@ static bool player_is_colliding(struct player* p, float newx, float newy) {
 	// whether the tile is collidable.
 	for (int x = tilex1; x <= tilex2; x++) {
 		for (int y = tiley1; y <= tiley2; y++) {
-			//int tile = tilemap_get(p->map, x, y);
 			int tile = tilemap_tileat(p->map, x, y);
 			if (tile >= 1) {
 				return true;
@@ -162,21 +125,19 @@ void player_update(struct player* p, float delta_time) {
 		p->dx += ((PLAYER_MAX_DX + PLAYER_MIN_DX) / 2) * delta_time;
 		p->dx = fminf(p->dx, PLAYER_MAX_DX);
 
-		int current_time = SDL_GetTicks();
-		if (current_time > p->counter + 30) {
-			anim_next(p->move_animation);
-			p->counter = current_time; 
-		}
+		anim_next(p->move_animation);
 	}
 
 	// If we're moving left, calculate our possible new x position.
 	if (p->left) {
 		newx -= p->dx * delta_time;
+		p->facing_direction = -1;
 	}
 
 	// If we're moving right, calculate our possible new y position.
 	if (p->right) {
 		newx += p->dx * delta_time;
+		p->facing_direction = 1;
 	}
 
 	if (p->jumping && p->can_jump && p->dy <= 0.0f) {
@@ -207,8 +168,6 @@ void player_update(struct player* p, float delta_time) {
 	// jumping, or falling, or standing still...
 	p->dy += GRAVITY * delta_time;
 	newy += p->dy * delta_time;
-
-	//printf("Probable new y: %f\n", newy);
 
 	if (p->boop_life > 0) {
 		p->boop_life -= (delta_time * 500.0f);
@@ -243,6 +202,13 @@ void player_update(struct player* p, float delta_time) {
 		// so update our actual position to the new y coordinate.
 		p->y = newy;
 	}
+
+	if (!p->left && !p->right && p->dy == 0.0f) {
+		anim_next(p->rest_animation);
+	}
+
+	p->rect_collision.x = newx + 6;
+	p->rect_collision.y = newy;
 }
 
 void player_handle_event(struct player* p, const SDL_Event* event) {
@@ -283,11 +249,27 @@ void player_draw(const struct player* p, const struct camera* cam, SDL_Renderer*
 
 	SDL_SetRenderDrawColor(r, 200, 200, 200, 255);
 
-	if (p->right) {
-		SDL_RenderCopy(r, p->texture, anim_current(p->move_animation), &rekt);
-	} else if (p->left) {
-		SDL_RenderCopyEx(r, p->texture, anim_current(p->move_animation), &rekt, 0, NULL, SDL_FLIP_HORIZONTAL);
-	} else if (!p->left && !p->right) {
-		SDL_RenderCopy(r, p->texture, &p->rest, &rekt);
-	} 
+	SDL_RendererFlip flip = SDL_FLIP_NONE;
+	if (p->facing_direction == -1) {
+		flip = SDL_FLIP_HORIZONTAL;
+	}
+
+	if (p->left || p->right) {
+		// moving left or right.
+		SDL_RenderCopyEx(r, p->texture, anim_current(p->move_animation), &rekt, 0, NULL, flip);
+	} else if (!p->left && !p->right && p->dy == 0.0f) {
+		// we are at rest.
+		SDL_RenderCopyEx(r, p->texture, anim_current(p->rest_animation), &rekt, 0, NULL, flip);
+	} else {
+		// probably jumping or such
+		SDL_RenderCopyEx(r, p->texture, &p->rest, &rekt, 0, NULL, flip);
+	}
+
+	SDL_Rect colRect = {
+		.x = p->rect_collision.x - cam->x,
+		.y = p->rect_collision.y - cam->y,
+		.w = p->rect_collision.w,
+		.h = p->rect_collision.h
+	};
+	SDL_RenderDrawRect(r, &colRect);
 }

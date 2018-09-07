@@ -5,17 +5,6 @@
 
 #include <SDL.h>
 
-struct point {
-	float x;
-	float y;
-};
-
-/*
- * Checks whether two SDL_Color structs are equal by comparing
- * the members r,g,b and a.
- */
-bool is_color_equal(SDL_Color* one, SDL_Color* two);
-
 /*
  * This part defines a macro so we can print debugging lines, but only when
  * the NDEBUG macro is undefined (much like from <assert.h>. The output is
@@ -33,5 +22,41 @@ bool is_color_equal(SDL_Color* one, SDL_Color* two);
 #else
 #define debug_print(fmt, ...) (void)0;
 #endif // NDEBUG
+
+/*
+ * Defines a point in the 2D cartesian plane.
+ */
+struct point {
+	float x;
+	float y;
+};
+
+/*
+ * Checks whether two SDL_Color structs are equal by comparing
+ * the members r,g,b and a.
+ */
+bool is_color_equal(SDL_Color* one, SDL_Color* two);
+
+/*
+ * Defines a structure which can be used for animation purposes.
+ */
+struct anim {
+	int frame_time; // time for each frame in milliseconds.
+	int counter; // counter;
+
+	int curr; // the current frame index
+	int n;    // the index used by anim_add
+
+	SDL_Rect* rectangles; 	// List of rectangles.
+};
+
+struct anim* anim_create(int frame_time);
+
+void anim_free(struct anim* a);
+void anim_add(struct anim* a, int x, int y, int w, int h);
+
+void anim_reset(struct anim* a);
+void anim_next(struct anim* a);
+const SDL_Rect* anim_current(struct anim* a);
 
 #endif // UTIL_H

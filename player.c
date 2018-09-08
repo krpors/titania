@@ -15,8 +15,8 @@ void player_init(struct player* p) {
 	p->y  = 70;
 	p->dx = PLAYER_MIN_DX;
 	p->dy = 0.0f;
-	p->w = 32;
-	p->h = 32;
+	p->w = 48;
+	p->h = 48;
 
 	p->facing_direction = 1; // right
 
@@ -29,6 +29,16 @@ void player_init(struct player* p) {
 
 	p->move_animation = anim_create(30);
 	p->rest_animation = anim_create(80);
+
+	p->rect_jump.x = 0;
+	p->rect_jump.y = 32;
+	p->rect_jump.w = 16;
+	p->rect_jump.h = 16;
+
+	p->rect_fall.x = 16;
+	p->rect_fall.y = 32;
+	p->rect_fall.w = 16;
+	p->rect_fall.h = 16;
 
 	p->rect_collision.x = 4 * 2;
 	p->rect_collision.y = 1 * 2;
@@ -254,16 +264,21 @@ void player_draw(const struct player* p, const struct camera* cam, SDL_Renderer*
 		flip = SDL_FLIP_HORIZONTAL;
 	}
 
-	if (p->left || p->right) {
-		// moving left or right.
-		SDL_RenderCopyEx(r, p->texture, anim_current(p->move_animation), &rekt, 0, NULL, flip);
-	} else if (!p->left && !p->right && p->dy == 0.0f) {
-		// we are at rest.
-		SDL_RenderCopyEx(r, p->texture, anim_current(p->rest_animation), &rekt, 0, NULL, flip);
+	const SDL_Rect* rect = NULL;
+
+	if (p->dy < 0) {
+		// jumping animation.
+		rect = &p->rect_jump;
+	} else if (p->dy > 0) {
+		// falling
+		rect = &p->rect_fall;
+	} else if (p->left || p->right) {
+		rect = anim_current(p->move_animation);
 	} else {
-		// probably jumping or such
-		SDL_RenderCopyEx(r, p->texture, &p->rest, &rekt, 0, NULL, flip);
+		rect = anim_current(p->rest_animation);
 	}
+
+	SDL_RenderCopyEx(r, p->texture, rect, &rekt, 0, NULL, flip);
 
 	SDL_Rect colRect = {
 		.x = p->rect_collision.x - cam->x,
@@ -271,5 +286,5 @@ void player_draw(const struct player* p, const struct camera* cam, SDL_Renderer*
 		.w = p->rect_collision.w,
 		.h = p->rect_collision.h
 	};
-	SDL_RenderDrawRect(r, &colRect);
+	//SDL_RenderDrawRect(r, &colRect);
 }

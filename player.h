@@ -46,9 +46,11 @@ struct player {
 
 	float counter; // counter to know when to increment the animation
 
-	struct anim* move_animation; // moving animation
-	struct anim* rest_animation; // rest animation.
+	struct anim* move_animation;    // moving animation
+	struct anim* rest_animation;    // rest animation
 
+	SDL_Rect rect_jump;
+	SDL_Rect rect_fall;
 	SDL_Rect rest; // when at rest.
 
 	SDL_Rect rect_collision; // rectangle for collision purposes

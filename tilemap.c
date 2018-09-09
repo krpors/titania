@@ -148,6 +148,27 @@ int tilemap_tileat(struct tilemap* tm, int x, int y) {
 	return gid;
 }
 
+struct tile tilemap_gettile(struct tilemap* tm, float x, float y) {
+	// Convert the x and y variadic coordinates to tile indexes.
+	int tilex = floorf(x / tm->tilewidth);
+	int tiley = floorf(y / tm->tileheight);
+
+	struct tile t = {
+		.r   = {.x = tilex, y = tiley, .w = tm->tilewidth, .h = tm->tileheight},
+		.gid = 1,
+	};
+
+	if (tilex < 0 || tilex >= (int)tm->map->width || tiley < 0 || tiley >= (int)tm->map->height) {
+		return t;
+	}
+
+	tmx_map* map = tm->map;
+
+	int idx = y * map->width + x;
+	t.gid = tm->collision_layer->content.gids[idx];
+	return t;
+}
+
 void tilemap_draw_foreground(struct tilemap* tm, struct camera* cam, SDL_Renderer* r) {
 	tmx_map* map = tm->map;
 	bool start_drawing = false;

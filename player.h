@@ -44,8 +44,6 @@ struct player {
 
 	SDL_Texture* texture; // the player texture spritesheet
 
-	float counter; // counter to know when to increment the animation
-
 	struct anim* move_animation;    // moving animation
 	struct anim* rest_animation;    // rest animation
 

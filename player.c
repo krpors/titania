@@ -25,8 +25,6 @@ void player_init(struct player* p) {
 	p->jumping = false;
 	p->can_jump = false;
 
-	p->counter = SDL_GetTicks();
-
 	p->move_animation = anim_create(30);
 	p->rest_animation = anim_create(80);
 
@@ -125,6 +123,7 @@ static bool player_is_colliding(struct player* p, float newx, float newy) {
 void player_update(struct player* p, float delta_time) {
 	// First we have to have to possible new positions, so declare
 	// those, starting with our current x and y positions.
+
 	float newx = p->x;
 	float newy = p->y;
 
@@ -174,11 +173,6 @@ void player_update(struct player* p, float delta_time) {
 		}
 	}
 
-	// Always apply some force downwards. Does not matter when we are
-	// jumping, or falling, or standing still...
-	p->dy += GRAVITY * delta_time;
-	newy += p->dy * delta_time;
-
 	if (p->boop_life > 0) {
 		p->boop_life -= (delta_time * 500.0f);
 		p->scale += 1.0f * delta_time;
@@ -217,8 +211,11 @@ void player_update(struct player* p, float delta_time) {
 		anim_next(p->rest_animation);
 	}
 
-	p->rect_collision.x = newx + 6;
-	p->rect_collision.y = newy;
+	// Update the collision rectangle to the new player position.
+	p->rect_collision.x = newx + 12;
+	p->rect_collision.y = newy + 5;
+	p->rect_collision.w = 25;
+	p->rect_collision.h = 38;
 }
 
 void player_handle_event(struct player* p, const SDL_Event* event) {
@@ -266,13 +263,13 @@ void player_draw(const struct player* p, const struct camera* cam, SDL_Renderer*
 
 	const SDL_Rect* rect = NULL;
 
-	if (p->dy < 0) {
+	if (p->dy < 0.0f) {
 		// jumping animation.
 		rect = &p->rect_jump;
-	} else if (p->dy > 0) {
+	} else if (p->dy > 0.0f) {
 		// falling
 		rect = &p->rect_fall;
-	} else if (p->left || p->right) {
+	} else if ((p->left || p->right) && p->dy == 0.0f) {
 		rect = anim_current(p->move_animation);
 	} else {
 		rect = anim_current(p->rest_animation);
@@ -280,11 +277,8 @@ void player_draw(const struct player* p, const struct camera* cam, SDL_Renderer*
 
 	SDL_RenderCopyEx(r, p->texture, rect, &rekt, 0, NULL, flip);
 
-	SDL_Rect colRect = {
-		.x = p->rect_collision.x - cam->x,
-		.y = p->rect_collision.y - cam->y,
-		.w = p->rect_collision.w,
-		.h = p->rect_collision.h
-	};
-	//SDL_RenderDrawRect(r, &colRect);
+	SDL_Rect colRect = p->rect_collision;
+	colRect.x = p->rect_collision.x - cam->x;
+	colRect.y = p->rect_collision.y - cam->y;
+	SDL_RenderDrawRect(r, &colRect);
 }

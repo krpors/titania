@@ -173,6 +173,11 @@ void player_update(struct player* p, float delta_time) {
 		}
 	}
 
+	// Always apply some force downwards. Does not matter when we are
+	// jumping, or falling, or standing still...
+	p->dy += GRAVITY * delta_time;
+	newy += p->dy * delta_time;
+
 	if (p->boop_life > 0) {
 		p->boop_life -= (delta_time * 500.0f);
 		p->scale += 1.0f * delta_time;
@@ -194,6 +199,15 @@ void player_update(struct player* p, float delta_time) {
 			// Collision with the ground, we can jump again.
 			p->jumping = false;
 			p->can_jump = true;
+			// Align ourselves to the top of the tile we bumped into. If we don't
+			// do something like this, we get weird animation due to the gravity
+			// constantly wanting to pull us down. Explain this better for future
+			// self, I suppose...
+			struct tile tilehit = tilemap_gettile(p->map, p->x, newy + p->h);
+			 // FIXME: NASTY HACK! Subtract with 0.001!
+			p->y = tilehit.r.y - p->h - 0.001;
+
+			debug_print("hit at %1f\n", p->y);
 			if (p->dy > 1000.0f) {
 				debug_print("Hit the ground with a force of %.1f\n", p->dy);
 			}

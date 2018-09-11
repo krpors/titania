@@ -154,7 +154,12 @@ struct tile tilemap_gettile(struct tilemap* tm, float x, float y) {
 	int tiley = floorf(y / tm->tileheight);
 
 	struct tile t = {
-		.r   = {.x = tilex, y = tiley, .w = tm->tilewidth, .h = tm->tileheight},
+		.r = {
+			.x = tilex * tm->tilewidth,
+			.y = tiley * tm->tileheight,
+			.w = tm->tilewidth,
+			.h = tm->tileheight
+		},
 		.gid = 1,
 	};
 

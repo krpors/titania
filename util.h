@@ -32,6 +32,19 @@ struct point {
 };
 
 /*
+ * A rectangle. This one differs from the SDL_Rect in that
+ * the members are floats instead of ints.
+ */
+struct rect {
+	float x;
+	float y;
+	float w;
+	float h;
+};
+
+SDL_Rect rect_to_SDLRect(const struct rect* r);
+
+/*
  * Checks whether two SDL_Color structs are equal by comparing
  * the members r,g,b and a.
  */

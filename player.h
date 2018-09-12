@@ -21,6 +21,9 @@ struct player {
 	struct tilemap* map;
 	struct bitmapfont* font;
 
+	struct rect rect_sprite;
+	struct rect rect_collision2;
+
 	float x;
 	float y;
 	float dx;

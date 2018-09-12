@@ -8,6 +8,17 @@
 
 extern SDL_Renderer* gRenderer;
 
+SDL_Rect rect_to_SDLRect(const struct rect* r) {
+	SDL_Rect ret = {
+		.x = r->x,
+		.y = r->y,
+		.w = r->w,
+		.h = r->h,
+	};
+
+	return ret;
+}
+
 bool is_color_equal(SDL_Color* one, SDL_Color* two) {
 	return one->r == two->r
 		&& one->g == two->g
@@ -55,7 +66,7 @@ void anim_next(struct anim* a) {
 			a->curr = 0;
 		}
 
-		a->counter = current_time; 
+		a->counter = current_time;
 	}
 }
 

@@ -38,10 +38,15 @@ void player_init(struct player* p) {
 	p->rect_fall.w = 16;
 	p->rect_fall.h = 16;
 
-	p->rect_collision.x = 4 * 2;
-	p->rect_collision.y = 1 * 2;
-	p->rect_collision.w = 9 * 2;
-	p->rect_collision.h = 15 * 2;
+	p->rect_sprite.x = 120;
+	p->rect_sprite.y = 70;
+	p->rect_sprite.w = 48;
+	p->rect_sprite.h = 48;
+
+	p->rect_collision2.x = p->x;
+	p->rect_collision2.y = p->y;
+	p->rect_collision2.w = p->w;
+	p->rect_collision2.h = p->h;
 }
 
 void player_left(struct player* p) {
@@ -120,10 +125,16 @@ static bool player_is_colliding(struct player* p, float newx, float newy) {
 	return false;
 }
 
+static void player_set_pos(struct player* p, float x, float y) {
+	p->rect_sprite.x = x;
+	p->rect_sprite.y = y;
+	p->rect_collision2.x = x;
+	p->rect_collision2.y = y;
+}
+
 void player_update(struct player* p, float delta_time) {
 	// First we have to have to possible new positions, so declare
 	// those, starting with our current x and y positions.
-
 	float newx = p->x;
 	float newy = p->y;
 
@@ -169,6 +180,7 @@ void player_update(struct player* p, float delta_time) {
 	// important!), update our x position with the new x position.
 	if (p->left || p->right) {
 		if (!player_is_colliding(p, newx, p->y)) {
+			player_set_pos(p, newx, p->y);
 			p->x = newx;
 		}
 	}
@@ -204,8 +216,9 @@ void player_update(struct player* p, float delta_time) {
 			// constantly wanting to pull us down. Explain this better for future
 			// self, I suppose...
 			struct tile tilehit = tilemap_gettile(p->map, p->x, newy + p->h);
-			 // FIXME: NASTY HACK! Subtract with 0.001!
+			// FIXME: NASTY HACK! Subtract with 0.001!
 			p->y = tilehit.r.y - p->h - 0.001;
+			player_set_pos(p, p->x, p->y);
 
 			debug_print("hit at %1f\n", p->y);
 			if (p->dy > 1000.0f) {
@@ -216,9 +229,10 @@ void player_update(struct player* p, float delta_time) {
 		// reset our y velocity to 0.
 		p->dy = 0.0f;
 	} else {
-		// We are not colliding with anything over the y-axis,
+		// We are not colliding with anything over the y-axis,j
 		// so update our actual position to the new y coordinate.
 		p->y = newy;
+		player_set_pos(p, p->x, p->y);
 	}
 
 	if (!p->left && !p->right && p->dy == 0.0f) {
@@ -252,12 +266,9 @@ void player_handle_event(struct player* p, const SDL_Event* event) {
 
 void player_draw(const struct player* p, const struct camera* cam, SDL_Renderer* r) {
 	(void)cam;
-	SDL_Rect rekt = {
-		.x = p->x - cam->x,
-		.y = p->y - cam->y,
-		.w = p->w,
-		.h = p->h
-	};
+	SDL_Rect rekt = rect_to_SDLRect(&p->rect_sprite);
+	rekt.x -= cam->x;
+	rekt.y -= cam->y;
 
 	if (p->boop_life > 0) {
 		float scale = p->scale;
@@ -291,8 +302,8 @@ void player_draw(const struct player* p, const struct camera* cam, SDL_Renderer*
 
 	SDL_RenderCopyEx(r, p->texture, rect, &rekt, 0, NULL, flip);
 
-	SDL_Rect colRect = p->rect_collision;
-	colRect.x = p->rect_collision.x - cam->x;
-	colRect.y = p->rect_collision.y - cam->y;
-	SDL_RenderDrawRect(r, &colRect);
+	SDL_Rect lolrect = rect_to_SDLRect(&p->rect_collision2);
+	lolrect.x -= cam->x;
+	lolrect.y -= cam->y;
+	SDL_RenderDrawRect(r, &lolrect);
 }

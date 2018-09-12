@@ -7,6 +7,9 @@
 #include <stdbool.h>
 #include <SDL.h>
 
+static const float PLAYER_SPRITE_WIDTH  = 48;
+static const float PLAYER_SPRITE_HEIGHT = 48;
+
 static const float PLAYER_MIN_DX = 300.0f;
 static const float PLAYER_MAX_DX = 400.0f;
 
@@ -21,15 +24,16 @@ struct player {
 	struct tilemap* map;
 	struct bitmapfont* font;
 
-	struct rect rect_sprite;
-	struct rect rect_collision2;
-
+	// The player x, y, w, h are actually the dimensions of the player's hitbox.
+	// The drawing of the player sprite is done based on these values.
 	float x;
 	float y;
+	float w;
+	float h;
+
+	// Velocities in the x and y directions.
 	float dx;
 	float dy;
-	int w;
-	int h;
 
 	int facing_direction;
 
@@ -77,6 +81,10 @@ void player_update(struct player* p, float delta_time);
  */
 void player_handle_event(struct player* p, const SDL_Event* event);
 
+/*
+ * Draws the player on the screen using the renderer. The camera is used
+ * to provide scrolling.
+ */
 void player_draw(const struct player* p, const struct camera* cam, SDL_Renderer* r);
 
 #endif // PLAYER_H

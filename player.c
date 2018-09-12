@@ -11,12 +11,14 @@
 
 void player_init(struct player* p) {
 	p->map = NULL;
-	p->x  = 120;
-	p->y  = 70;
+
+	p->x = 120;
+	p->y = 70;
+	p->w = 22;
+	p->h = 36;
+
 	p->dx = PLAYER_MIN_DX;
 	p->dy = 0.0f;
-	p->w = 48;
-	p->h = 48;
 
 	p->facing_direction = 1; // right
 
@@ -38,15 +40,6 @@ void player_init(struct player* p) {
 	p->rect_fall.w = 16;
 	p->rect_fall.h = 16;
 
-	p->rect_sprite.x = 120;
-	p->rect_sprite.y = 70;
-	p->rect_sprite.w = 48;
-	p->rect_sprite.h = 48;
-
-	p->rect_collision2.x = p->x;
-	p->rect_collision2.y = p->y;
-	p->rect_collision2.w = p->w;
-	p->rect_collision2.h = p->h;
 }
 
 void player_left(struct player* p) {
@@ -125,13 +118,6 @@ static bool player_is_colliding(struct player* p, float newx, float newy) {
 	return false;
 }
 
-static void player_set_pos(struct player* p, float x, float y) {
-	p->rect_sprite.x = x;
-	p->rect_sprite.y = y;
-	p->rect_collision2.x = x;
-	p->rect_collision2.y = y;
-}
-
 void player_update(struct player* p, float delta_time) {
 	// First we have to have to possible new positions, so declare
 	// those, starting with our current x and y positions.
@@ -180,7 +166,6 @@ void player_update(struct player* p, float delta_time) {
 	// important!), update our x position with the new x position.
 	if (p->left || p->right) {
 		if (!player_is_colliding(p, newx, p->y)) {
-			player_set_pos(p, newx, p->y);
 			p->x = newx;
 		}
 	}
@@ -218,9 +203,7 @@ void player_update(struct player* p, float delta_time) {
 			struct tile tilehit = tilemap_gettile(p->map, p->x, newy + p->h);
 			// FIXME: NASTY HACK! Subtract with 0.001!
 			p->y = tilehit.r.y - p->h - 0.001;
-			player_set_pos(p, p->x, p->y);
 
-			debug_print("hit at %1f\n", p->y);
 			if (p->dy > 1000.0f) {
 				debug_print("Hit the ground with a force of %.1f\n", p->dy);
 			}
@@ -232,7 +215,6 @@ void player_update(struct player* p, float delta_time) {
 		// We are not colliding with anything over the y-axis,j
 		// so update our actual position to the new y coordinate.
 		p->y = newy;
-		player_set_pos(p, p->x, p->y);
 	}
 
 	if (!p->left && !p->right && p->dy == 0.0f) {
@@ -265,10 +247,15 @@ void player_handle_event(struct player* p, const SDL_Event* event) {
 }
 
 void player_draw(const struct player* p, const struct camera* cam, SDL_Renderer* r) {
-	(void)cam;
-	SDL_Rect rekt = rect_to_SDLRect(&p->rect_sprite);
-	rekt.x -= cam->x;
-	rekt.y -= cam->y;
+	// The position of the sprite differs from the actual x,y,w,h position
+	// from the player, since that defines our hitbox (with the world and other
+	// entities such as items, enemies, etc.).
+	const SDL_Rect rect_sprite = {
+		.x = p->x - 15 - cam->x,
+		.y = p->y - 10 - cam->y,
+		.w = PLAYER_SPRITE_WIDTH,
+		.h = PLAYER_SPRITE_HEIGHT,
+	};
 
 	if (p->boop_life > 0) {
 		float scale = p->scale;
@@ -300,10 +287,15 @@ void player_draw(const struct player* p, const struct camera* cam, SDL_Renderer*
 		rect = anim_current(p->rest_animation);
 	}
 
-	SDL_RenderCopyEx(r, p->texture, rect, &rekt, 0, NULL, flip);
+	SDL_RenderCopyEx(r, p->texture, rect, &rect_sprite, 0, NULL, flip);
 
-	SDL_Rect lolrect = rect_to_SDLRect(&p->rect_collision2);
-	lolrect.x -= cam->x;
-	lolrect.y -= cam->y;
-	SDL_RenderDrawRect(r, &lolrect);
+/* 	const SDL_Rect rect_hitbox = {
+		.x = p->x - cam->x,
+		.y = p->y - cam->y,
+		.w = p->w,
+		.h = p->h,
+	};
+	SDL_SetRenderDrawColor(r, 0, 255, 0, 100);
+	SDL_RenderFillRect(r, &rect_hitbox); */
+
 }

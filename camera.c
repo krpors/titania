@@ -24,20 +24,9 @@ void camera_update(struct camera* cam, const struct player* p, const struct tile
 	// within bounds of the map. We do a float division to get a better
 	// result for the max values.
 	cam->x = p->x - ((float)cam->winwidth / 2.0);
-	if (cam->x < xmin) {
-		cam->x = xmin;
-	}
-	
-	if (cam->x > xmax) {
-		cam->x = xmax;
-	}
+	cam->x = fmin(fmax(cam->x, xmin), xmax);
 
-	// Same, but this time over the y position.
 	cam->y = p->y - ((float)cam->winheight / 2.0);
-	if (cam->y < ymin) {
-		cam->y = ymin;
-	}
-	if (cam->y > ymax) {
-		cam->y = ymax;
-	}
+	cam->y = fmin(fmax(cam->y, ymin), ymax);
+
 }

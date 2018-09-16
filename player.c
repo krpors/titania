@@ -9,6 +9,7 @@
 #include <SDL.h>
 #include <SDL_image.h>
 
+
 void player_init(struct player* p) {
 	p->map = NULL;
 
@@ -40,6 +41,16 @@ void player_init(struct player* p) {
 	p->rect_fall.w = 16;
 	p->rect_fall.h = 16;
 
+	for (int i = 0; i < 15; i++) {
+		p->bleh[i].x = 0;
+		p->bleh[i].y = 0;
+		p->bleh[i].w = 10;
+		p->bleh[i].h = 10;
+		p->bleh[i].a = 255;
+		p->bleh[i].life = 100;
+	}
+	p->bleh_time = SDL_GetTicks();
+	p->bleh_num = 0;
 }
 
 void player_left(struct player* p) {
@@ -118,6 +129,14 @@ static bool player_is_colliding(struct player* p, float newx, float newy) {
 	return false;
 }
 
+static void decrease_particles(struct particle* p) {
+	for (int i = 0; i < 15; i++) {
+		p[i].life--;
+		p[i].a = (float)p[i].life / 50.0f * 255;
+		printf("Particle alpha is now %d, %d\n", p[i].life, p[i].a);
+	}
+}
+
 void player_update(struct player* p, float delta_time) {
 	// First we have to have to possible new positions, so declare
 	// those, starting with our current x and y positions.
@@ -132,7 +151,27 @@ void player_update(struct player* p, float delta_time) {
 		p->dx = fminf(p->dx, PLAYER_MAX_DX);
 
 		anim_next(p->move_animation);
+
+		int current_time = SDL_GetTicks();
+		if (current_time > p->bleh_time + 25) {
+			debug_print("Incrementing %d\n", p->bleh_num);
+
+			struct particle* part = &p->bleh[p->bleh_num];
+			part->x = p->x;
+			part->y = p->y;
+			part->life = 50;
+			part->a = 255;
+
+			p->bleh_num++;
+			if (p->bleh_num >= 15) {
+				p->bleh_num = 0;
+			}
+
+			p->bleh_time = current_time;
+		}
 	}
+
+	decrease_particles(p->bleh);
 
 	// If we're moving left, calculate our possible new x position.
 	if (p->left) {
@@ -288,6 +327,24 @@ void player_draw(const struct player* p, const struct camera* cam, SDL_Renderer*
 	}
 
 	SDL_RenderCopyEx(r, p->texture, rect, &rect_sprite, 0, NULL, flip);
+
+	for (int i = 0; i < 15; i++) {
+		// SDL_SetRenderDrawColor(r, 255, 255, 255, p->bleh[i].a);
+		if (p->bleh[i].life < 0) {
+			continue;
+		}
+		printf("%d\n", p->bleh[i].a);
+
+		SDL_SetRenderDrawColor(r, 255, 255, 255, p->bleh[i].a);
+		SDL_Rect rector = {
+			.x = p->bleh[i].x - cam->x,
+			.y = p->bleh[i].y - cam->y + 25,
+			.w = p->bleh[i].w,
+			.h = p->bleh[i].h,
+		};
+
+		SDL_RenderFillRect(r, &rector);
+	}
 
 /* 	const SDL_Rect rect_hitbox = {
 		.x = p->x - cam->x,

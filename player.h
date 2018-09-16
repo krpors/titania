@@ -18,7 +18,16 @@ static const float PLAYER_MAX_DY = 600.0f;
 
 static const float GRAVITY = 3000.0f;
 
-void anim_test();
+struct particle {
+	float x;
+	float y;
+	float w;
+	float h;
+
+	int a;
+	int life;
+};
+
 
 struct player {
 	struct tilemap* map;
@@ -51,14 +60,19 @@ struct player {
 
 	SDL_Texture* texture; // the player texture spritesheet
 
-	struct anim* move_animation;    // moving animation
-	struct anim* rest_animation;    // rest animation
+	struct anim* move_animation; // moving animation
+	struct anim* rest_animation; // rest animation
 
 	SDL_Rect rect_jump;
 	SDL_Rect rect_fall;
 	SDL_Rect rest; // when at rest.
 
 	SDL_Rect rect_collision; // rectangle for collision purposes
+
+	int bleh_time;
+	int bleh_num;
+	struct particle bleh[15];
+
 };
 
 void player_init(struct player* p);

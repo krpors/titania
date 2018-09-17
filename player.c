@@ -9,6 +9,83 @@
 #include <SDL.h>
 #include <SDL_image.h>
 
+/*
+ * Particle related functions. Currently defined static since they are
+ * only applicable for the player currently. We'll see where this should go.
+ */
+
+static struct particle_list* particle_list_create(void) {
+	struct particle_list* l = malloc(sizeof(struct particle_list));
+	l->particle_num = 0;
+	l->particle_time = 0;
+	l->len = 20;
+	l->p = malloc(l->len * sizeof(struct particle));
+	for (size_t i = 0; i < l->len; i++) {
+		l->p[i].x = 0;
+		l->p[i].y = 0;
+		l->p[i].w = 10;
+		l->p[i].h = 10;
+		l->p[i].a = 255;
+		l->p[i].life = 100;
+		l->p[i].max_life = 50;
+	}
+	return l;
+}
+
+static void particle_list_free(struct particle_list* list) {
+	free(list->p);
+	free(list);
+}
+
+static void particle_list_calc_frame(struct particle_list* list, const struct player* p) {
+	int current_time = SDL_GetTicks();
+	if (current_time > list->particle_time + 25) {
+		struct particle* part = &list->p[list->particle_num];
+		part->x = p->x;
+		part->y = p->y;
+		part->life = 50;
+		part->a = 255;
+
+		list->particle_num++;
+		if (list->particle_num >= (int)list->len) {
+			list->particle_num = 0;
+		}
+
+
+		list->particle_time = current_time;
+	}
+}
+
+static void particle_list_decrease(struct particle_list* list) {
+	for (size_t i = 0; i < list->len; i++) {
+		struct particle* part = &list->p[i];
+		part->life--;
+		part->a = (float)part->life / (float)part->max_life * 255;
+	}
+}
+
+static void particle_list_draw(const struct particle_list* list, const struct camera* cam, SDL_Renderer* r) {
+	for (size_t i = 0; i < list->len; i++) {
+		const struct particle* current_particle = &list->p[i];
+		SDL_SetRenderDrawColor(r, 255, 255, 255, current_particle->a);
+		if (current_particle->life < 0) {
+			continue;
+		}
+		// TODO: randomize sizes, directions etc.
+		SDL_Rect rector = {
+			.x = current_particle->x - cam->x,
+			.y = current_particle->y - cam->y + 30,
+			.w = current_particle->w,
+			.h = current_particle->h,
+		};
+
+		SDL_RenderFillRect(r, &rector);
+	}
+}
+
+/*
+ * All player struct related functions.
+ */
 
 void player_init(struct player* p) {
 	p->map = NULL;
@@ -41,16 +118,11 @@ void player_init(struct player* p) {
 	p->rect_fall.w = 16;
 	p->rect_fall.h = 16;
 
-	for (int i = 0; i < 15; i++) {
-		p->bleh[i].x = 0;
-		p->bleh[i].y = 0;
-		p->bleh[i].w = 10;
-		p->bleh[i].h = 10;
-		p->bleh[i].a = 255;
-		p->bleh[i].life = 100;
-	}
-	p->bleh_time = SDL_GetTicks();
-	p->bleh_num = 0;
+	p->particles = particle_list_create();
+}
+
+void player_free(struct player* p) {
+	particle_list_free(p->particles);
 }
 
 void player_left(struct player* p) {
@@ -129,14 +201,6 @@ static bool player_is_colliding(struct player* p, float newx, float newy) {
 	return false;
 }
 
-static void decrease_particles(struct particle* p) {
-	for (int i = 0; i < 15; i++) {
-		p[i].life--;
-		p[i].a = (float)p[i].life / 50.0f * 255;
-		printf("Particle alpha is now %d, %d\n", p[i].life, p[i].a);
-	}
-}
-
 void player_update(struct player* p, float delta_time) {
 	// First we have to have to possible new positions, so declare
 	// those, starting with our current x and y positions.
@@ -152,26 +216,11 @@ void player_update(struct player* p, float delta_time) {
 
 		anim_next(p->move_animation);
 
-		int current_time = SDL_GetTicks();
-		if (current_time > p->bleh_time + 25) {
-			debug_print("Incrementing %d\n", p->bleh_num);
-
-			struct particle* part = &p->bleh[p->bleh_num];
-			part->x = p->x;
-			part->y = p->y;
-			part->life = 50;
-			part->a = 255;
-
-			p->bleh_num++;
-			if (p->bleh_num >= 15) {
-				p->bleh_num = 0;
-			}
-
-			p->bleh_time = current_time;
-		}
+		if (p->can_jump)
+			particle_list_calc_frame(p->particles, p);
 	}
 
-	decrease_particles(p->bleh);
+	particle_list_decrease(p->particles);
 
 	// If we're moving left, calculate our possible new x position.
 	if (p->left) {
@@ -305,6 +354,8 @@ void player_draw(const struct player* p, const struct camera* cam, SDL_Renderer*
 		SDL_RenderSetScale(r, 1.0f, 1.0f);
 	}
 
+	particle_list_draw(p->particles, cam, r);
+
 	SDL_SetRenderDrawColor(r, 200, 200, 200, 255);
 
 	SDL_RendererFlip flip = SDL_FLIP_NONE;
@@ -327,24 +378,6 @@ void player_draw(const struct player* p, const struct camera* cam, SDL_Renderer*
 	}
 
 	SDL_RenderCopyEx(r, p->texture, rect, &rect_sprite, 0, NULL, flip);
-
-	for (int i = 0; i < 15; i++) {
-		// SDL_SetRenderDrawColor(r, 255, 255, 255, p->bleh[i].a);
-		if (p->bleh[i].life < 0) {
-			continue;
-		}
-		printf("%d\n", p->bleh[i].a);
-
-		SDL_SetRenderDrawColor(r, 255, 255, 255, p->bleh[i].a);
-		SDL_Rect rector = {
-			.x = p->bleh[i].x - cam->x,
-			.y = p->bleh[i].y - cam->y + 25,
-			.w = p->bleh[i].w,
-			.h = p->bleh[i].h,
-		};
-
-		SDL_RenderFillRect(r, &rector);
-	}
 
 /* 	const SDL_Rect rect_hitbox = {
 		.x = p->x - cam->x,

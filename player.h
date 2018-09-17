@@ -26,6 +26,15 @@ struct particle {
 
 	int a;
 	int life;
+	int max_life;
+};
+
+struct particle_list {
+	struct particle* p;
+	size_t len;
+
+	int particle_time; // to determine when to 'place' a particle.
+	int particle_num;  // the particle index to use.
 };
 
 
@@ -69,13 +78,11 @@ struct player {
 
 	SDL_Rect rect_collision; // rectangle for collision purposes
 
-	int bleh_time;
-	int bleh_num;
-	struct particle bleh[15];
-
+	struct particle_list* particles;
 };
 
 void player_init(struct player* p);
+void player_free(struct player* p);
 void player_left(struct player* p);
 void player_right(struct player* p);
 void player_jump(struct player* p);

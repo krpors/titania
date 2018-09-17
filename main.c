@@ -247,6 +247,7 @@ int main(int argc, char* argv[]) {
 		total_frames++;
 	}
 
+	player_free(&p);
 	bitmapfont_free(&bmf);
 	tilemap_free(&tm);
 

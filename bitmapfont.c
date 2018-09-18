@@ -8,10 +8,8 @@
 #include <SDL_image.h>
 
 
-bool bitmapfont_init(struct bitmapfont* bmf, SDL_Renderer* renderer, const char* path, const char* glyphs) {
-	assert(bmf != NULL);
-	assert(path != NULL);
-	assert(renderer != NULL);
+struct bitmapfont* bitmapfont_create(SDL_Renderer* renderer, const char* path, const char* glyphs) {
+	struct bitmapfont* bmf = malloc(sizeof(struct bitmapfont));
 
 	// Pre-initialize some member so we can safely free them when things run
 	// into an error.
@@ -28,14 +26,14 @@ bool bitmapfont_init(struct bitmapfont* bmf, SDL_Renderer* renderer, const char*
 		// failed to dupe, should hardly be the case, ever.
 		perror("unable to duplicate string");
 		bitmapfont_free(bmf);
-		return false;
+		return NULL;
 	}
 
 	bmf->surface = IMG_Load(path);
 	if (bmf->surface == NULL) {
 		fprintf(stderr, "%s\n", IMG_GetError());
 		bitmapfont_free(bmf);
-		return false;
+		return NULL;
 	}
 
 	SDL_PixelFormat* fmt = bmf->surface->format;
@@ -44,7 +42,7 @@ bool bitmapfont_init(struct bitmapfont* bmf, SDL_Renderer* renderer, const char*
 	if (fmt->BitsPerPixel != 8) {
 		fprintf(stderr, "font image must be 8 bits per pixel\n");
 		bitmapfont_free(bmf);
-		return false;
+		return NULL;
 	}
 
 	// We're going to read some pixels, so SDL requires us to lock the surface
@@ -106,7 +104,7 @@ bool bitmapfont_init(struct bitmapfont* bmf, SDL_Renderer* renderer, const char*
 			"glyph count (%li) in image does not equal "
 			"the glyph count in the string (%li)\n", bmf->glyphs_len, strlen(glyphs));
 		bitmapfont_free(bmf);
-		return false;
+		return NULL;
 	}
 
 
@@ -114,14 +112,14 @@ bool bitmapfont_init(struct bitmapfont* bmf, SDL_Renderer* renderer, const char*
 	if (bmf->texture == NULL) {
 		fprintf(stderr, "Unable to create texture from surface: %s\n", SDL_GetError());
 		bitmapfont_free(bmf);
-		return false;
+		return NULL;
 	}
 
 	// After we are done, we don't need the surface so we can free it prematurely.
 	SDL_FreeSurface(bmf->surface);
 	bmf->surface = NULL;
 
-	return true;
+	return bmf;
 }
 
 void bitmapfont_free(struct bitmapfont* bmf) {
@@ -142,6 +140,8 @@ void bitmapfont_free(struct bitmapfont* bmf) {
 	// And free the array itself.
 	free(bmf->rects);
 	bmf->rects = NULL;
+
+	free(bmf);
 }
 
 void bitmapfont_render(struct bitmapfont* bmf, int x, int y, const char* txt) {

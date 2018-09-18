@@ -81,7 +81,7 @@ struct player {
 	struct particle_list* particles;
 };
 
-void player_init(struct player* p);
+struct player* player_create();
 void player_free(struct player* p);
 void player_left(struct player* p);
 void player_right(struct player* p);

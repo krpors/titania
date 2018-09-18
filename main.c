@@ -21,7 +21,7 @@ static bool quit = false;
 static bool pause = false;
 static bool drawgrid = false;
 static bool drawdebug = false;
-static struct player p;
+static struct player* p;
 
 float tilewidth = 64;
 float tileheight = 64;
@@ -161,22 +161,22 @@ int main(int argc, char* argv[]) {
 	tm.tilewidth = tilewidth;
 	tm.tileheight = tileheight;
 
-	player_init(&p);
-	if (!player_load_texture(&p, gRenderer, "player.png")) {
+	p = player_create();
+	if (!player_load_texture(p, gRenderer, "player.png")) {
 		exit(1);
 	}
-	p.map = &tm;
+	p->map = &tm;
 
 	struct camera cam;
 	camera_init(&cam, 800.0, 600.0);
 
 	const char* glyphs = " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,!?-+/():;%&`'*#=[]\"";
-	struct bitmapfont bmf;
-	if (!bitmapfont_init(&bmf, gRenderer, "font.png", glyphs)) {
+	struct bitmapfont* bmf = bitmapfont_create(gRenderer, "font.png", glyphs);
+	if (bmf == NULL) {
 		exit(1);
 	}
 
-	p.font = &bmf;
+	p->font = bmf;
 
 	SDL_Event e;
 
@@ -194,7 +194,7 @@ int main(int argc, char* argv[]) {
 			}
 			handle_keypress(&e);
 			tilemap_handle_event(&tm, &e);
-			player_handle_event(&p, &e);
+			player_handle_event(p, &e);
 		}
 
 		if (pause) {
@@ -212,9 +212,9 @@ int main(int argc, char* argv[]) {
 		deltaTime = (timeAfter - timeBefore) / 1000.0f;
 		timeBefore = SDL_GetTicks();
 
-		player_update(&p, deltaTime);
+		player_update(p, deltaTime);
 
-		camera_update(&cam, &p, &tm);
+		camera_update(&cam, p, &tm);
 
 		// Render logic
 		SDL_SetRenderDrawColor(gRenderer, 0, 0, 0, 0);
@@ -222,22 +222,22 @@ int main(int argc, char* argv[]) {
 
 		background_draw(&bg, gRenderer, &cam);
 		tilemap_draw_background(&tm, &cam, gRenderer);
-		player_draw(&p, &cam, gRenderer);
+		player_draw(p, &cam, gRenderer);
 		tilemap_draw_foreground(&tm, &cam, gRenderer);
 
 		draw_grid(&cam, &tm, gRenderer);
 
 		if (drawdebug) {
-			bitmapfont_renderf(&bmf, 0, 0 * 14, "P(%3.0f, %3.0f), vx: %f, dy: %f", p.x, p.y, p.dx, p.dy);
-			bitmapfont_renderf(&bmf, 0, 1 * 14, "  jumping: %d", p.jumping);
-			bitmapfont_renderf(&bmf, 0, 2 * 14, "  can jump: %d", p.can_jump);
-			bitmapfont_renderf(&bmf, 0, 3 * 14, "  boop_life: %-3d", p.boop_life);
-			// bitmapfont_renderf(&bmf, 0, 4 * 14, "  anim: %d", p.anim);
+			bitmapfont_renderf(bmf, 0, 0 * 14, "P(%3.0f, %3.0f), vx: %f, dy: %f", p->x, p->y, p->dx, p->dy);
+			bitmapfont_renderf(bmf, 0, 1 * 14, "  jumping: %d", p->jumping);
+			bitmapfont_renderf(bmf, 0, 2 * 14, "  can jump: %d", p->can_jump);
+			bitmapfont_renderf(bmf, 0, 3 * 14, "  boop_life: %-3d", p->boop_life);
+			// bitmapfont_renderf(bmf, 0, 4 * 14, "  anim: %d", p.anim);
 			// spacing
-			bitmapfont_renderf(&bmf, 0, 6 * 14, "Delta time: %-3f", deltaTime);
-			bitmapfont_renderf(&bmf, 0, 7 * 14, "FPS: %-3f", fps);
-			bitmapfont_renderf(&bmf, 0, 8 * 14, "Cam: %1.0f, %1.0f", cam.x, cam.y);
-			bitmapfont_renderf(&bmf, 0, 9 * 14, "Tile size: %1.0f x %1.0f", tm.tilewidth, tm.tileheight);
+			bitmapfont_renderf(bmf, 0, 6 * 14, "Delta time: %-3f", deltaTime);
+			bitmapfont_renderf(bmf, 0, 7 * 14, "FPS: %-3f", fps);
+			bitmapfont_renderf(bmf, 0, 8 * 14, "Cam: %1.0f, %1.0f", cam.x, cam.y);
+			bitmapfont_renderf(bmf, 0, 9 * 14, "Tile size: %1.0f x %1.0f", tm.tilewidth, tm.tileheight);
 		}
 
 		SDL_RenderPresent(gRenderer);
@@ -247,8 +247,8 @@ int main(int argc, char* argv[]) {
 		total_frames++;
 	}
 
-	player_free(&p);
-	bitmapfont_free(&bmf);
+	player_free(p);
+	bitmapfont_free(bmf);
 	tilemap_free(&tm);
 
 	SDL_DestroyRenderer(gRenderer);

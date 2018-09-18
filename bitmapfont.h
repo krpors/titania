@@ -27,7 +27,8 @@ struct bitmapfont {
  *
  * TODO: document the way the glyphs and the font image works together.
  */
-bool bitmapfont_init(struct bitmapfont* bmf, SDL_Renderer* renderer, const char* path, const char* glyphs);
+
+struct bitmapfont* bitmapfont_create(SDL_Renderer* r, const char* path, const char* glyphs);
 
 /*
  * Frees resources.

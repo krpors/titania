@@ -87,7 +87,9 @@ static void particle_list_draw(const struct particle_list* list, const struct ca
  * All player struct related functions.
  */
 
-void player_init(struct player* p) {
+struct player* player_create() {
+	struct player* p = calloc(1, sizeof(struct player));
+
 	p->map = NULL;
 
 	p->x = 120;
@@ -119,10 +121,15 @@ void player_init(struct player* p) {
 	p->rect_fall.h = 16;
 
 	p->particles = particle_list_create();
+
+	return p;
 }
 
 void player_free(struct player* p) {
+	anim_free(p->move_animation);
+	anim_free(p->rest_animation);
 	particle_list_free(p->particles);
+	free(p);
 }
 
 void player_left(struct player* p) {
@@ -176,7 +183,7 @@ bool player_load_texture(struct player* p, SDL_Renderer* r, const char* path) {
 	return true;
 }
 
-static bool player_is_colliding(struct player* p, float newx, float newy) {
+static bool player_is_colliding(const struct player* p, float newx, float newy) {
 	assert(p->map != NULL);
 
 	// Get the tile coordinate of the top-left corner of the player's bounds.

@@ -18,7 +18,7 @@
 #define filename "\x1b[34;1m%s\x1b[0m"
 #define function "\x1b[33;1m%s()\x1b[0m"
 #define debug_print(fmt, ...) \
-	do { fprintf(stderr, filename ":%d:" function "    " fmt, __FILE__, __LINE__, __func__, ##__VA_ARGS__); } while (0)
+	do { fprintf(stderr, filename ":%d:" function "    " fmt, __FILE__, __LINE__, __func__, ## __VA_ARGS__); } while (0)
 // Note: the double ## is to swallow the preceding comma in case the list is empty (gcc specific)
 #else
 #define debug_print(fmt, ...) (void)0;
@@ -50,6 +50,8 @@ SDL_Rect rect_to_SDLRect(const struct rect* r);
  * the members r,g,b and a.
  */
 bool is_color_equal(SDL_Color* one, SDL_Color* two);
+
+float random_float(float min, float max);
 
 /*
  * Defines a structure which can be used for animation purposes.

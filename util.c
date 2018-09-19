@@ -26,6 +26,11 @@ bool is_color_equal(SDL_Color* one, SDL_Color* two) {
 		&& one->a == two->a;
 }
 
+float random_float(float min, float max) {
+	float scale = rand() / (float) RAND_MAX;
+	return min + scale * (max - min);
+}
+
 /*****************************************************************************/
 
 // TODO: own file perhaps?

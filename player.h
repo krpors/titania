@@ -24,11 +24,20 @@ struct particle {
 	float w;
 	float h;
 
+	float dy;
+
 	int a;
 	int life;
 	int max_life;
 };
 
+/*
+ * The particle list is a sort of specialized list specifically for particles
+ * to calculate when the next particle should beemitted (using particle_time),
+ * and which particle in the array to reset to the player's position
+ * (particle_num). The implementation behaves as a sort of circular list. When
+ * the end index is reached (len) the particle_num will be set to 0.
+ */
 struct particle_list {
 	struct particle* p;
 	size_t len;

@@ -103,6 +103,8 @@ int main(int argc, char* argv[]) {
 	(void)(argc);
 	(void)(argv);
 
+	srand(time(NULL));
+
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
 		fprintf(stderr, "Cannot init SDL: %s\n", SDL_GetError());
 		exit(1);

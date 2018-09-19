@@ -20,16 +20,12 @@
  */
 
 static struct particle_list* particle_list_create(void) {
-	struct particle_list* l = malloc(sizeof(struct particle_list));
-	l->particle_num = 0;
-	l->particle_time = 0;
+	struct particle_list* l = calloc(1, sizeof(struct particle_list));
 	l->len = 20;
-	l->p = malloc(l->len * sizeof(struct particle));
+	l->p = calloc(l->len, sizeof(struct particle));
 	for (size_t i = 0; i < l->len; i++) {
-		l->p[i].x = 0;
-		l->p[i].y = 0;
-		l->p[i].w = 10;
-		l->p[i].h = 10;
+		l->p[i].w = 3;
+		l->p[i].h = 3;
 		l->p[i].a = 255;
 		l->p[i].life = 100;
 		l->p[i].max_life = 50;
@@ -42,13 +38,20 @@ static void particle_list_free(struct particle_list* list) {
 	free(list);
 }
 
+/*
+ * This function can be called repeatedly to check if "it's time" to place yet
+ * another particle on the player's position. If it's the case, a particle with
+ * the index of particle_num will be initialized to the player's position.
+ */
 static void particle_list_calc_frame(struct particle_list* list, const struct player* p) {
 	int current_time = SDL_GetTicks();
 	if (current_time > list->particle_time + 25) {
 		struct particle* part = &list->p[list->particle_num];
-		part->x = p->x;
-		part->y = p->y;
-		part->life = 50;
+		part->x = random_float(p->x - 2, p->x + 2);
+		part->y = p->y + 5;
+		part->w = part->h = random_float(2, 5);
+		part->dy = random_float(-110, -100);
+		part->life = 20;
 		part->a = 255;
 
 		list->particle_num++;
@@ -61,11 +64,17 @@ static void particle_list_calc_frame(struct particle_list* list, const struct pl
 	}
 }
 
-static void particle_list_decrease(struct particle_list* list) {
+/*
+ * Updates the particle list every frame.
+ */
+static void particle_list_update(struct particle_list* list, float delta_time) {
 	for (size_t i = 0; i < list->len; i++) {
 		struct particle* part = &list->p[i];
+		// Decrease the life of the particle and change the alpha.
 		part->life--;
-		part->a = (float)part->life / (float)part->max_life * 255;
+		// part->a = (float)part->life / (float)part->max_life * 255;
+		part->y += part->dy * delta_time;
+		part->dy += 1000.0f * delta_time;
 	}
 }
 
@@ -236,9 +245,10 @@ void player_update(struct player* p, float delta_time) {
 			particle_list_calc_frame(p->particles, p);
 	}
 
-	particle_list_decrease(p->particles);
+	particle_list_update(p->particles, delta_time);
 
 	// If we're moving left, calculate our possible new x position.
+	// Decrease the life of the particle and change the alpha.
 	if (p->left) {
 		newx -= p->dx * delta_time;
 		p->facing_direction = -1;

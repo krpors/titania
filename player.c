@@ -9,6 +9,11 @@
 #include <SDL.h>
 #include <SDL_image.h>
 
+//#############################################################################
+// Private functions.
+//#############################################################################
+
+
 /*
  * Particle related functions. Currently defined static since they are
  * only applicable for the player currently. We'll see where this should go.
@@ -82,6 +87,10 @@ static void particle_list_draw(const struct particle_list* list, const struct ca
 		SDL_RenderFillRect(r, &rector);
 	}
 }
+
+//#############################################################################
+// Public functions.
+//#############################################################################
 
 /*
  * All player struct related functions.

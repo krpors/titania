@@ -27,8 +27,7 @@ struct tilemap {
 	float tileheight;
 };
 
-
-bool tilemap_load(struct tilemap* tm, const char* path);
+struct tilemap* tilemap_create(const char* path);
 void tilemap_free(struct tilemap* tm);
 int tilemap_tileat(struct tilemap* tm, int x, int y);
 

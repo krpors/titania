@@ -7,6 +7,76 @@
 
 #include <SDL_image.h>
 
+//#############################################################################
+// Private functions for the bitmap font.
+//#############################################################################
+
+/*
+ * Given the first pixel found at the top-left corner of the image (which is
+ * the separator color), this function will find all 'glyphs' separated by that
+ * color. Every glyph is just a SDL_Rect with a specific x coordinate and width.
+ * The y coordinate will always be zero and the height will always be the height
+ * of the surface.
+ */
+static void bitmapfont_find_glyphs(struct bitmapfont* bmf) {
+	SDL_PixelFormat* fmt = bmf->surface->format;
+
+	// We're going to read some pixels, so SDL requires us to lock the surface
+	// before doing anything with it.
+	SDL_LockSurface(bmf->surface);
+
+	// We get the first pixel at the top left corner of the image. This pixel
+	// color denotes the separator of the glyphs in the image.
+	Uint8 index = *(Uint8 *)bmf->surface->pixels;
+	SDL_Color sepColor = fmt->palette->colors[index];
+
+	// The width of the current glyph in pixels.
+	int glyph_width = 0;
+
+	// If this boolean is set to true, we are about to read the
+	// width of a glyph in the iteration.
+	bool read_glyph = false;
+
+	// We only need to iterate over the width of the image, since each glyph
+	// is a rectangle anyway, and it should be separated by the separator color.
+	for (int x = 0; x < bmf->surface->w; x++) {
+		Uint8 bla = ((Uint8*) bmf->surface->pixels)[x];
+		SDL_Color currentColor = fmt->palette->colors[bla];
+
+		// Is the current pixel color a separator color?
+		bool curr_is_sep = is_color_equal(&currentColor, &sepColor);
+
+		if (curr_is_sep) {
+			if (read_glyph) {
+
+				// Create a rectangle on the heap, add it to the `rects' array.
+				SDL_Rect* r1 = malloc(1 * sizeof(SDL_Rect));
+				r1->x = x - glyph_width;
+				r1->y = 0;
+				r1->w = glyph_width;
+				r1->h = bmf->surface->h;
+				bmf->rects[bmf->glyphs_len] = r1;
+
+				bmf->glyphs_len++;
+
+				// Reallocate the array with extra space for another
+				// rectangle.  We don't care too much about optimalization,
+				// so we increase it with 1 sizeof each time.
+				bmf->rects = realloc(bmf->rects, (bmf->glyphs_len + 1) * sizeof(SDL_Rect*));
+			}
+			glyph_width = 0;
+			read_glyph = false;
+		} else {
+			read_glyph = true;
+			glyph_width++;
+		}
+	}
+	SDL_UnlockSurface(bmf->surface);
+}
+
+//#############################################################################
+// Public functions for the bitmap font.
+//#############################################################################
 
 struct bitmapfont* bitmapfont_create(SDL_Renderer* renderer, const char* path, const char* glyphs) {
 	struct bitmapfont* bmf = malloc(sizeof(struct bitmapfont));
@@ -45,56 +115,8 @@ struct bitmapfont* bitmapfont_create(SDL_Renderer* renderer, const char* path, c
 		return NULL;
 	}
 
-	// We're going to read some pixels, so SDL requires us to lock the surface
-	// before doing anything with it.
-	SDL_LockSurface(bmf->surface);
-
-	// We get the first pixel at the top left corner of the image. This pixel
-	// color denotes the separator of the glyphs in the image.
-	Uint8 index = *(Uint8 *)bmf->surface->pixels;
-	SDL_Color sepColor = fmt->palette->colors[index];
-
-	int z = 0;
-
-	// If this boolean is set to true, we are about to read the
-	// width of a glyph in the iteration.
-	bool read_glyph = false;
-
-	// We only need to iterate over the width of the image, since each glyph
-	// is a rectangle anyway, and it should be separated by the separator color.
-	for (int x = 0; x < bmf->surface->w; x++) {
-		Uint8 bla = ((Uint8*) bmf->surface->pixels)[x];
-		SDL_Color currentColor = fmt->palette->colors[bla];
-
-		// Is the current pixel color a separator color?
-		bool curr_is_sep = is_color_equal(&currentColor, &sepColor);
-
-		if (curr_is_sep) {
-			if (read_glyph) {
-
-				// Create a rectangle on the heap, add it to the `rects' array.
-				SDL_Rect* r1 = malloc(1 * sizeof(SDL_Rect));
-				r1->x = x - z;
-				r1->y = 0;
-				r1->w = z;
-				r1->h = bmf->surface->h;
-				bmf->rects[bmf->glyphs_len] = r1;
-
-				bmf->glyphs_len++;
-
-				// Reallocate the array with extra space for another
-				// rectangle.  We don't care too much about optimalization,
-				// so we increase it with 1 sizeof each time.
-				bmf->rects = realloc(bmf->rects, (bmf->glyphs_len + 1) * sizeof(SDL_Rect*));
-			}
-			z = 0;
-			read_glyph = false;
-		} else {
-			read_glyph = true;
-			z++;
-		}
-	}
-	SDL_UnlockSurface(bmf->surface);
+	// Start finding the glyphs in the SDL_Surface.
+	bitmapfont_find_glyphs(bmf);
 
 	// We check the amount of glyphs found in the image with the
 	// glyphs in the const char* argument of the function. They

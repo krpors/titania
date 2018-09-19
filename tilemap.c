@@ -107,12 +107,13 @@ static tmx_layer* find_collision_layer(const tmx_map* map) {
 	return NULL;
 }
 
+struct tilemap* tilemap_create(const char* path) {
+	struct tilemap* tm = malloc(sizeof(struct tilemap));
 
-bool tilemap_load(struct tilemap* tm, const char* path) {
 	tm->map = tmx_load(path);
 	if (tm->map == NULL) {
 		tmx_perror("tmx_load");
-		return false;
+		return NULL;
 	}
 
 	debug_print("Tilemap is loaded: width = %d, height = %d\n", tm->map->width, tm->map->height);
@@ -121,13 +122,13 @@ bool tilemap_load(struct tilemap* tm, const char* path) {
 	if (tm->collision_layer == NULL) {
 		fprintf(stderr, "Could not find collision layer!?\n");
 		tilemap_free(tm);
-		return false;
+		return NULL;
 	}
 
 	tm->tilewidth = 0;
 	tm->tilewidth = 0;
 
-	return true;
+	return tm;
 }
 
 void tilemap_free(struct tilemap* tm) {

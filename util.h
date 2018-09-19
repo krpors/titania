@@ -18,7 +18,8 @@
 #define filename "\x1b[34;1m%s\x1b[0m"
 #define function "\x1b[33;1m%s()\x1b[0m"
 #define debug_print(fmt, ...) \
-            do { fprintf(stderr, filename ":%d:" function "    " fmt, __FILE__, __LINE__, __func__, __VA_ARGS__); } while (0)
+	do { fprintf(stderr, filename ":%d:" function "    " fmt, __FILE__, __LINE__, __func__, ##__VA_ARGS__); } while (0)
+// Note: the double ## is to swallow the preceding comma in case the list is empty (gcc specific)
 #else
 #define debug_print(fmt, ...) (void)0;
 #endif // NDEBUG

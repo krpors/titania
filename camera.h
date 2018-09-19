@@ -14,10 +14,9 @@ struct camera {
 	int winheight;
 };
 
-void camera_init(struct camera* cam, int winwidth, int winheight);
+struct camera* camera_create(int winwidth, int winheight);
 
 void camera_update(struct camera* cam, const struct player* p, const struct tilemap* map);
 
-const char* camera_str(struct camera* cam);
 
 #endif // CAMERA_H

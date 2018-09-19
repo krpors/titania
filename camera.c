@@ -2,10 +2,12 @@
 #include "player.h"
 #include "tilemap.h"
 
-void camera_init(struct camera* cam, int winwidth, int winheight) {
+struct camera* camera_create(int winwidth, int winheight) {
 	debug_print("Camera initializing with window width: %d, height: %d\n", winwidth, winheight);
+	struct camera* cam = malloc(sizeof(struct camera));
 	cam->winwidth = winwidth;
 	cam->winheight = winheight;
+	return cam;
 }
 
 void camera_update(struct camera* cam, const struct player* p, const struct tilemap* map) {

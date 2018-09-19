@@ -103,12 +103,6 @@ int main(int argc, char* argv[]) {
 	(void)(argc);
 	(void)(argv);
 
-	tmx_map* map = tmx_load("map01.tmx");
-	if (map == NULL) {
-		tmx_perror("tmx_load");
-	}
-	tmx_map_free(map);
-
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
 		fprintf(stderr, "Cannot init SDL: %s\n", SDL_GetError());
 		exit(1);
@@ -153,22 +147,21 @@ int main(int argc, char* argv[]) {
 	}
 #endif
 
-	struct tilemap tm;
-	if (!tilemap_load(&tm, "map01.tmx")) {
-		tilemap_free(&tm);
+	struct tilemap* tm = tilemap_create("map01.tmx");
+	if (tm == NULL) {
+		tilemap_free(tm);
 		exit(1);
 	}
-	tm.tilewidth = tilewidth;
-	tm.tileheight = tileheight;
+	tm->tilewidth = tilewidth;
+	tm->tileheight = tileheight;
 
 	p = player_create();
 	if (!player_load_texture(p, gRenderer, "player.png")) {
 		exit(1);
 	}
-	p->map = &tm;
+	p->map = tm;
 
-	struct camera cam;
-	camera_init(&cam, 800.0, 600.0);
+	struct camera* cam = camera_create(800, 600);
 
 	const char* glyphs = " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,!?-+/():;%&`'*#=[]\"";
 	struct bitmapfont* bmf = bitmapfont_create(gRenderer, "font.png", glyphs);
@@ -193,7 +186,7 @@ int main(int argc, char* argv[]) {
 				quit = true;
 			}
 			handle_keypress(&e);
-			tilemap_handle_event(&tm, &e);
+			tilemap_handle_event(tm, &e);
 			player_handle_event(p, &e);
 		}
 
@@ -214,18 +207,18 @@ int main(int argc, char* argv[]) {
 
 		player_update(p, deltaTime);
 
-		camera_update(&cam, p, &tm);
+		camera_update(cam, p, tm);
 
 		// Render logic
 		SDL_SetRenderDrawColor(gRenderer, 0, 0, 0, 0);
 		SDL_RenderClear(gRenderer);
 
-		background_draw(&bg, gRenderer, &cam);
-		tilemap_draw_background(&tm, &cam, gRenderer);
-		player_draw(p, &cam, gRenderer);
-		tilemap_draw_foreground(&tm, &cam, gRenderer);
+		background_draw(&bg, gRenderer, cam);
+		tilemap_draw_background(tm, cam, gRenderer);
+		player_draw(p, cam, gRenderer);
+		tilemap_draw_foreground(tm, cam, gRenderer);
 
-		draw_grid(&cam, &tm, gRenderer);
+		draw_grid(cam, tm, gRenderer);
 
 		if (drawdebug) {
 			bitmapfont_renderf(bmf, 0, 0 * 14, "P(%3.0f, %3.0f), vx: %f, dy: %f", p->x, p->y, p->dx, p->dy);
@@ -236,8 +229,8 @@ int main(int argc, char* argv[]) {
 			// spacing
 			bitmapfont_renderf(bmf, 0, 6 * 14, "Delta time: %-3f", deltaTime);
 			bitmapfont_renderf(bmf, 0, 7 * 14, "FPS: %-3f", fps);
-			bitmapfont_renderf(bmf, 0, 8 * 14, "Cam: %1.0f, %1.0f", cam.x, cam.y);
-			bitmapfont_renderf(bmf, 0, 9 * 14, "Tile size: %1.0f x %1.0f", tm.tilewidth, tm.tileheight);
+			bitmapfont_renderf(bmf, 0, 8 * 14, "Cam: %1.0f, %1.0f", cam->x, cam->y);
+			bitmapfont_renderf(bmf, 0, 9 * 14, "Tile size: %1.0f x %1.0f", tm->tilewidth, tm->tileheight);
 		}
 
 		SDL_RenderPresent(gRenderer);
@@ -249,7 +242,7 @@ int main(int argc, char* argv[]) {
 
 	player_free(p);
 	bitmapfont_free(bmf);
-	tilemap_free(&tm);
+	tilemap_free(tm);
 
 	SDL_DestroyRenderer(gRenderer);
 	SDL_DestroyWindow(gWindow);

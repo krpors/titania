@@ -53,26 +53,5 @@ bool is_color_equal(SDL_Color* one, SDL_Color* two);
 
 float random_float(float min, float max);
 
-/*
- * Defines a structure which can be used for animation purposes.
- */
-struct anim {
-	int frame_time; // time for each frame in milliseconds.
-	int counter; // counter;
-
-	int curr; // the current frame index
-	int n;    // the index used by anim_add
-
-	SDL_Rect* rectangles; 	// List of rectangles.
-};
-
-struct anim* anim_create(int frame_time);
-
-void anim_free(struct anim* a);
-void anim_add(struct anim* a, int x, int y, int w, int h);
-
-void anim_reset(struct anim* a);
-void anim_next(struct anim* a);
-const SDL_Rect* anim_current(struct anim* a);
 
 #endif // UTIL_H

@@ -3,6 +3,7 @@
 
 #include "camera.h"
 #include "util.h"
+#include "gfx.h"
 
 #include <stdbool.h>
 #include <SDL.h>
@@ -17,19 +18,6 @@ static const float PLAYER_JUMP_VEL = 1000.0f;
 static const float PLAYER_MAX_DY = 600.0f;
 
 static const float GRAVITY = 3000.0f;
-
-struct particle {
-	float x;
-	float y;
-	float w;
-	float h;
-
-	float dy;
-
-	int a;
-	int life;
-	int max_life;
-};
 
 /*
  * The particle list is a sort of specialized list specifically for particles

@@ -1,4 +1,5 @@
 #include "camera.h"
+#include "gfx.h"
 #include "player.h"
 #include "bitmapfont.h"
 #include "tilemap.h"

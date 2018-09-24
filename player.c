@@ -20,23 +20,33 @@
  * only applicable for the player currently. We'll see where this should go.
  */
 
-static struct particle_list* particle_list_create(void) {
-	struct particle_list* l = calloc(1, sizeof(struct particle_list));
-	l->len = 20;
-	l->p = calloc(l->len, sizeof(struct particle));
-	for (size_t i = 0; i < l->len; i++) {
-		l->p[i].w = 3;
-		l->p[i].h = 3;
-		l->p[i].a = 255;
-		l->p[i].life = 100;
-		l->p[i].max_life = 50;
+static struct player_trail* player_trail_create(void) {
+	struct player_trail* l = calloc(1, sizeof(struct player_trail));
+	l->plist = circular_list_create();
+
+	for (size_t i = 0; i < 20; i++) {
+		struct particle* p = calloc(1, sizeof(struct particle));
+		p->w = 3;
+		p->h = 3;
+		p->a = 255;
+		p->life = 100;
+		p->max_life = 50;
+		circular_list_add(l->plist, p);
 	}
 	return l;
 }
 
-static void particle_list_free(struct particle_list* list) {
-	free(list->p);
+static void player_trail_free(struct player_trail* list) {
+	for (size_t i = 0; i < list->plist->len; i++) {
+		// Iterate over the circular list and use it to free the particle elements.
+		struct particle* p = list->plist->data[i];
+		free(p);
+		p = NULL;
+	}
+	circular_list_free(list->plist);
+	list->plist = NULL;
 	free(list);
+	list = NULL;
 }
 
 /*
@@ -44,22 +54,16 @@ static void particle_list_free(struct particle_list* list) {
  * another particle on the player's position. If it's the case, a particle with
  * the index of particle_num will be initialized to the player's position.
  */
-static void particle_list_calc_frame(struct particle_list* list, const struct player* p) {
+static void player_trail_calc_frame(struct player_trail* list, const struct player* p) {
 	int current_time = SDL_GetTicks();
 	if (current_time > list->particle_time + 25) {
-		struct particle* part = &list->p[list->particle_num];
+		struct particle* part = circular_list_next(list->plist);
 		part->x = random_float(p->x - 2, p->x + 2);
 		part->y = p->y + 5;
 		part->w = part->h = random_float(2, 5);
-		part->dy = random_float(-110, -100);
+		part->dy = random_float(-150, -100);
 		part->life = 20;
 		part->a = 255;
-
-		list->particle_num++;
-		if (list->particle_num >= (int)list->len) {
-			list->particle_num = 0;
-		}
-
 
 		list->particle_time = current_time;
 	}
@@ -68,9 +72,9 @@ static void particle_list_calc_frame(struct particle_list* list, const struct pl
 /*
  * Updates the particle list every frame.
  */
-static void particle_list_update(struct particle_list* list, float delta_time) {
-	for (size_t i = 0; i < list->len; i++) {
-		struct particle* part = &list->p[i];
+static void player_trail_update(struct player_trail* list, float delta_time) {
+	for (size_t i = 0; i < list->plist->len; i++) {
+		struct particle* part = list->plist->data[i];
 		// Decrease the life of the particle and change the alpha.
 		part->life--;
 		// part->a = (float)part->life / (float)part->max_life * 255;
@@ -79,9 +83,9 @@ static void particle_list_update(struct particle_list* list, float delta_time) {
 	}
 }
 
-static void particle_list_draw(const struct particle_list* list, const struct camera* cam, SDL_Renderer* r) {
-	for (size_t i = 0; i < list->len; i++) {
-		const struct particle* current_particle = &list->p[i];
+static void player_trail_draw(const struct player_trail* list, const struct camera* cam, SDL_Renderer* r) {
+	for (size_t i = 0; i < list->plist->len; i++) {
+		const struct particle* current_particle = list->plist->data[i];
 		SDL_SetRenderDrawColor(r, 255, 255, 255, current_particle->a);
 		if (current_particle->life < 0) {
 			continue;
@@ -95,6 +99,28 @@ static void particle_list_draw(const struct particle_list* list, const struct ca
 		};
 
 		SDL_RenderFillRect(r, &rector);
+	}
+}
+
+//#############################################################################
+// Other cruft
+//#############################################################################
+
+static struct player_bump* player_bump_create() {
+	struct player_bump* bump = malloc(sizeof(struct player_bump));
+	bump->len = 40;
+	bump->p = calloc(bump->len, sizeof(struct particle));
+	bump->particle_num = 0;
+	for (size_t i = 0; i < bump->len; i++) {
+		bump->p[i].w = 10;
+		bump->p[i].h = 10;
+	}
+	return bump;
+}
+
+static void player_bump_place(struct player_bump* bump, struct player* p) {
+	for (size_t i = bump->particle_num; i < bump->len; i++) {
+
 	}
 }
 
@@ -139,7 +165,7 @@ struct player* player_create() {
 	p->rect_fall.w = 16;
 	p->rect_fall.h = 16;
 
-	p->particles = particle_list_create();
+	p->particles = player_trail_create();
 
 	return p;
 }
@@ -147,7 +173,7 @@ struct player* player_create() {
 void player_free(struct player* p) {
 	anim_free(p->move_animation);
 	anim_free(p->rest_animation);
-	particle_list_free(p->particles);
+	player_trail_free(p->particles);
 	free(p);
 }
 
@@ -243,10 +269,10 @@ void player_update(struct player* p, float delta_time) {
 		anim_next(p->move_animation);
 
 		if (p->can_jump)
-			particle_list_calc_frame(p->particles, p);
+			player_trail_calc_frame(p->particles, p);
 	}
 
-	particle_list_update(p->particles, delta_time);
+	player_trail_update(p->particles, delta_time);
 
 	// If we're moving left, calculate our possible new x position.
 	// Decrease the life of the particle and change the alpha.
@@ -381,7 +407,7 @@ void player_draw(const struct player* p, const struct camera* cam, SDL_Renderer*
 		SDL_RenderSetScale(r, 1.0f, 1.0f);
 	}
 
-	particle_list_draw(p->particles, cam, r);
+	player_trail_draw(p->particles, cam, r);
 
 	SDL_SetRenderDrawColor(r, 200, 200, 200, 255);
 

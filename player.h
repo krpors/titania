@@ -20,18 +20,25 @@ static const float PLAYER_MAX_DY = 600.0f;
 static const float GRAVITY = 3000.0f;
 
 /*
- * The particle list is a sort of specialized list specifically for particles
- * to calculate when the next particle should beemitted (using particle_time),
+ * The player trail is a sort of specialized list specifically for particles
+ * to calculate when the next particle should be emitted (using particle_time),
  * and which particle in the array to reset to the player's position
- * (particle_num). The implementation behaves as a sort of circular list. When
- * the end index is reached (len) the particle_num will be set to 0.
+ * (particle_num). The implementation uses a circular list to determine which
+ * particle to initialize and to place at what position.
+ *
+ * The player trail is something that is displayed when a player is running.
  */
-struct particle_list {
+struct player_trail {
+	struct circular_list* plist;
+
+	int particle_time; // to determine when to 'place' a particle.
+};
+
+struct player_bump {
 	struct particle* p;
 	size_t len;
 
-	int particle_time; // to determine when to 'place' a particle.
-	int particle_num;  // the particle index to use.
+	int particle_num;
 };
 
 
@@ -75,7 +82,7 @@ struct player {
 
 	SDL_Rect rect_collision; // rectangle for collision purposes
 
-	struct particle_list* particles;
+	struct player_trail* particles;
 };
 
 struct player* player_create();

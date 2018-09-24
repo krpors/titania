@@ -48,7 +48,6 @@ void circular_list_add(struct circular_list* cl, void* data) {
 	// should be a pointer size), and assign the data to the index.
 	cl->data = realloc(cl->data, ++cl->len * sizeof(data));
 	cl->data[cl->len - 1] = data;
-	debug_print("Reallocated. Length is now %lu * %lu\n", cl->len, sizeof(data));
 }
 
 void* circular_list_next(struct circular_list* cl) {

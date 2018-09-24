@@ -36,57 +36,30 @@ float random_float(float min, float max) {
 //#############################################################################
 
 struct circular_list* circular_list_create() {
-	struct circular_list* cl = malloc(sizeof(struct circular_list));
-	cl->head = NULL;
-	cl->curr = NULL;
-	cl->tail = NULL;
+	struct circular_list* cl = calloc(1, sizeof(struct circular_list));
 	return cl;
 }
 
 void circular_list_add(struct circular_list* cl, void* data) {
-	struct circular_list_node* newnode = malloc(sizeof(struct circular_list_node));
-	newnode->data = data;
-	debug_print("Adding new node: %p, size = %lu\n", (void*)newnode, sizeof(newnode));
+	assert(cl != NULL);
+	assert(data != NULL);
 
-	// First element inserted.
-	if (cl->head == NULL) {
-		// this is the very first node, and the next node of the current node points to
-		// itself (it's circular).
-		cl->head = newnode;
-		cl->curr = newnode;
-		cl->tail = newnode;
-		newnode->next = newnode;
-	} else {
-		// Update the tail of the current tail to the new node:
-		cl->tail->next = newnode;
-		// The new node is now the new tail:
-		cl->tail = newnode;
-		// The next node of the new node is the head of the list.
-		newnode->next = cl->head;
-	}
+	// Reallocate our data dynamic array, holding the size of the data (which
+	// should be a pointer size), and assign the data to the index.
+	cl->data = realloc(cl->data, ++cl->len * sizeof(data));
+	cl->data[cl->len - 1] = data;
+	debug_print("Reallocated. Length is now %lu * %lu\n", cl->len, sizeof(data));
 }
 
 void* circular_list_next(struct circular_list* cl) {
-	void* data = cl->curr->data;
-	cl->curr = cl->curr->next;
-	return data;
+	assert(cl != NULL);
+	// The modulo makes sure we will 'loop' over the array.
+	return cl->data[cl->current_index++ % cl->len];
 }
 
 void circular_list_free(struct circular_list* cl) {
-	debug_print("Head is %p\n", (void*)cl->head);
-	debug_print("Tail is %p\n", (void*)cl->tail);
-
-	struct circular_list_node* node = cl->head;
-	while (node != cl->tail) {
-		struct circular_list_node* next = node->next;
-		debug_print("Freeing %p\n", (void*)node);
-		free(node);
-		node = next;
-	}
-
-	debug_print("Freeing %p\n", (void*)cl->tail);
-	free(cl->tail);
-	cl->tail = NULL;
+	free(cl->data);
+	cl->data = NULL;
 	free(cl);
 	cl = NULL;
 }

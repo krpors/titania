@@ -53,5 +53,20 @@ bool is_color_equal(SDL_Color* one, SDL_Color* two);
 
 float random_float(float min, float max);
 
+struct circular_list_node {
+	void* data;
+	struct circular_list_node* next;
+};
+
+struct circular_list {
+	struct circular_list_node* head;
+	struct circular_list_node* curr;
+	struct circular_list_node* tail;
+};
+
+struct circular_list* circular_list_create();
+void circular_list_add(struct circular_list* cl, void* data);
+void* circular_list_next(struct circular_list* cl);
+void circular_list_free(struct circular_list* cl);
 
 #endif // UTIL_H

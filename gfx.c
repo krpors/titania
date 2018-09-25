@@ -1,5 +1,5 @@
 #include "gfx.h"
-
+#include "util.h"
 
 //#############################################################################
 // Animation types.
@@ -35,13 +35,7 @@ void anim_next(struct anim* a) {
 	int current_time = SDL_GetTicks();
 	if (current_time > a->counter + a->frame_time) {
 		a->curr++;
-		// Make sure we stay in bounds. Repeatedly calling anim_next() will
-		// result in a circular array behaviour: when next()ing on the last entry,
-		// the next call will result result in the first element.
-		if (a->curr > a->n - 1 || a->curr < 0) {
-			a->curr = 0;
-		}
-
+		a->curr = a->curr % a->n; // circular buffer behaviour
 		a->counter = current_time;
 	}
 }

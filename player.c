@@ -22,29 +22,24 @@
 
 static struct player_trail* player_trail_create(void) {
 	struct player_trail* l = calloc(1, sizeof(struct player_trail));
-	l->plist = circular_list_create();
+
+	l->particle_len = 20;
+	l->particles = calloc(l->particle_len, sizeof(struct particle));
 
 	for (size_t i = 0; i < 20; i++) {
-		struct particle* p = calloc(1, sizeof(struct particle));
+		struct particle* p = &l->particles[i];
 		p->w = 3;
 		p->h = 3;
 		p->a = 255;
 		p->life = 100;
 		p->max_life = 50;
-		circular_list_add(l->plist, p);
 	}
 	return l;
 }
 
 static void player_trail_free(struct player_trail* list) {
-	for (size_t i = 0; i < list->plist->len; i++) {
-		// Iterate over the circular list and use it to free the particle elements.
-		struct particle* p = list->plist->data[i];
-		free(p);
-		p = NULL;
-	}
-	circular_list_free(list->plist);
-	list->plist = NULL;
+	free(list->particles);
+	list->particles = NULL;
 	free(list);
 	list = NULL;
 }
@@ -57,7 +52,7 @@ static void player_trail_free(struct player_trail* list) {
 static void player_trail_calc_frame(struct player_trail* list, const struct player* p) {
 	int current_time = SDL_GetTicks();
 	if (current_time > list->particle_time + 25) {
-		struct particle* part = circular_list_next(list->plist);
+		struct particle* part = &list->particles[list->particle_curr++ % list->particle_len];
 		part->x = random_float(p->x - 2, p->x + 2);
 		part->y = p->y + 5;
 		part->w = part->h = random_float(2, 5);
@@ -73,8 +68,8 @@ static void player_trail_calc_frame(struct player_trail* list, const struct play
  * Updates the particle list every frame.
  */
 static void player_trail_update(struct player_trail* list, float delta_time) {
-	for (size_t i = 0; i < list->plist->len; i++) {
-		struct particle* part = list->plist->data[i];
+	for (size_t i = 0; i < list->particle_len; i++) {
+		struct particle* part = &list->particles[i];
 		// Decrease the life of the particle and change the alpha.
 		part->life--;
 		// part->a = (float)part->life / (float)part->max_life * 255;
@@ -84,8 +79,8 @@ static void player_trail_update(struct player_trail* list, float delta_time) {
 }
 
 static void player_trail_draw(const struct player_trail* list, const struct camera* cam, SDL_Renderer* r) {
-	for (size_t i = 0; i < list->plist->len; i++) {
-		const struct particle* current_particle = list->plist->data[i];
+	for (size_t i = 0; i < list->particle_len; i++) {
+		const struct particle* current_particle = &list->particles[i];
 		SDL_SetRenderDrawColor(r, 255, 255, 255, current_particle->a);
 		if (current_particle->life < 0) {
 			continue;

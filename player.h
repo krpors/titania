@@ -29,7 +29,9 @@ static const float GRAVITY = 3000.0f;
  * The player trail is something that is displayed when a player is running.
  */
 struct player_trail {
-	struct circular_list* plist;
+	struct particle* particles;
+	size_t particle_len;
+	int particle_curr;
 
 	int particle_time; // to determine when to 'place' a particle.
 };

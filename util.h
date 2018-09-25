@@ -53,45 +53,4 @@ bool is_color_equal(SDL_Color* one, SDL_Color* two);
 
 float random_float(float min, float max);
 
-//#############################################################################
-// Circular list implementation. It's rather 'naive'.
-//#############################################################################
-
-/*
- * A 'circular list', backed by a dynamic reallocating array of pointer sized
- * elements. The `current_index` can be used to iterate properly. This struct
- * does not copy the memory and is certainly not in charge of freeing the memory
- * pointed to in the `void** data` member.
- */
-struct circular_list {
-	void** data;
-	size_t len;
-
-	size_t current_index;
-};
-
-struct circular_list* circular_list_create();
-
-/*
- * Adds an element to the list by reallocating the backing array with a size + 1
- * of the current length. It's therefore pretty naive (no geometric progression
- * or the like) but this won't certainly be a performance bottle neck (yet...)
- * anyway.
- */
-void circular_list_add(struct circular_list* cl, void* data);
-
-/*
- * Iterates over the array and selects the next element and returns it.
- * When the last element is reached, the list will 'roll over' and return
- * the first (head) of the list.
- */
-void* circular_list_next(struct circular_list* cl);
-
-/*
- * Frees the dynamic array `void** data` and frees the circular list. The
- * memory held by the pointer is not freed, since this struct does know
- * how it should be freed.
- */
-void circular_list_free(struct circular_list* cl);
-
 #endif // UTIL_H

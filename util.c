@@ -30,35 +30,3 @@ float random_float(float min, float max) {
 	float scale = rand() / (float) RAND_MAX;
 	return min + scale * (max - min);
 }
-
-//#############################################################################
-// Circular list implementation.
-//#############################################################################
-
-struct circular_list* circular_list_create() {
-	struct circular_list* cl = calloc(1, sizeof(struct circular_list));
-	return cl;
-}
-
-void circular_list_add(struct circular_list* cl, void* data) {
-	assert(cl != NULL);
-	assert(data != NULL);
-
-	// Reallocate our data dynamic array, holding the size of the data (which
-	// should be a pointer size), and assign the data to the index.
-	cl->data = realloc(cl->data, ++cl->len * sizeof(data));
-	cl->data[cl->len - 1] = data;
-}
-
-void* circular_list_next(struct circular_list* cl) {
-	assert(cl != NULL);
-	// The modulo makes sure we will 'loop' over the array.
-	return cl->data[cl->current_index++ % cl->len];
-}
-
-void circular_list_free(struct circular_list* cl) {
-	free(cl->data);
-	cl->data = NULL;
-	free(cl);
-	cl = NULL;
-}
